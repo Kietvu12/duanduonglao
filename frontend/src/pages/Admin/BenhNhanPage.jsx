@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { benhNhanAPI, dichVuAPI, benhNhanDichVuAPI } from '../../services/api';
+import { benhNhanAPI, dichVuAPI, benhNhanDichVuAPI, phanKhuAPI, phongNewAPI, phongAPI } from '../../services/api';
 
 export default function BenhNhanPage() {
   const navigate = useNavigate();
@@ -27,6 +27,11 @@ export default function BenhNhanPage() {
   const [hinhThucThanhToan, setHinhThucThanhToan] = useState('thang');
   const [thanhToanType, setThanhToanType] = useState('chua_thanh_toan'); // 'chua_thanh_toan', 'thanh_toan_truoc', 'thanh_toan_du'
   const [soTienThanhToan, setSoTienThanhToan] = useState('');
+  const [phanKhus, setPhanKhus] = useState([]);
+  const [phongs, setPhongs] = useState([]);
+  const [selectedPhanKhu, setSelectedPhanKhu] = useState('');
+  const [selectedPhong, setSelectedPhong] = useState(null);
+  const [currentPhong, setCurrentPhong] = useState(null); // Phòng hiện tại của bệnh nhân khi sửa
 
   useEffect(() => {
     loadBenhNhans();
@@ -61,8 +66,38 @@ export default function BenhNhanPage() {
     try {
       let benhNhanId;
       if (editing) {
-        await benhNhanAPI.update(editing.id, formData);
+        // Loại bỏ trường phong khỏi formData khi update
+        const { phong, ...updateData } = formData;
+        await benhNhanAPI.update(editing.id, updateData);
         benhNhanId = editing.id;
+        
+        // Xử lý cập nhật phòng nếu có chọn phòng mới
+        if (selectedPhong && currentPhong) {
+          // Nếu đổi phòng (id_phong khác với phòng hiện tại)
+          if (selectedPhong !== currentPhong.id_phong) {
+            try {
+              await phongAPI.update(currentPhong.id, {
+                id_phong: selectedPhong
+              });
+            } catch (error) {
+              console.error('Error updating phong:', error);
+              alert('Đã cập nhật bệnh nhân nhưng có lỗi khi cập nhật phòng: ' + error.message);
+            }
+          }
+        } else if (selectedPhong && !currentPhong) {
+          // Nếu chưa có phòng, tạo phòng mới
+          try {
+            await phongAPI.create({
+              id_benh_nhan: benhNhanId,
+              id_phong: selectedPhong,
+              ngay_bat_dau_o: new Date().toISOString().split('T')[0],
+              ngay_ket_thuc_o: null
+            });
+          } catch (error) {
+            console.error('Error creating phong:', error);
+            alert('Đã cập nhật bệnh nhân nhưng có lỗi khi tạo phòng: ' + error.message);
+          }
+        }
         
         // Nếu có dịch vụ hiện tại, cập nhật dịch vụ (SỬA DỊCH VỤ)
         // Lưu ý: Chỉ cập nhật bản ghi hiện tại, KHÔNG tạo mới, KHÔNG kết thúc dịch vụ
@@ -121,7 +156,9 @@ export default function BenhNhanPage() {
         
         alert('Cập nhật bệnh nhân thành công');
       } else {
-        const result = await benhNhanAPI.create(formData);
+        // Loại bỏ trường phong khỏi formData khi tạo mới
+        const { phong, ...createData } = formData;
+        const result = await benhNhanAPI.create(createData);
         benhNhanId = result.data?.id;
         alert('Thêm bệnh nhân thành công');
       }
@@ -185,6 +222,29 @@ export default function BenhNhanPage() {
 
   const [currentDichVu, setCurrentDichVu] = useState(null);
 
+  const loadPhanKhus = async () => {
+    try {
+      const response = await phanKhuAPI.getAll();
+      setPhanKhus(response.data || []);
+    } catch (error) {
+      console.error('Error loading phan khus:', error);
+    }
+  };
+
+  const loadPhongs = async (idPhanKhu) => {
+    try {
+      if (idPhanKhu) {
+        const response = await phongNewAPI.getAll({ id_phan_khu: idPhanKhu });
+        setPhongs(response.data || []);
+      } else {
+        setPhongs([]);
+      }
+    } catch (error) {
+      console.error('Error loading phongs:', error);
+      setPhongs([]);
+    }
+  };
+
   const handleEdit = async (benhNhan) => {
     setEditing(benhNhan);
     setFormData({
@@ -195,11 +255,38 @@ export default function BenhNhanPage() {
       dia_chi: benhNhan.dia_chi || '',
       nhom_mau: benhNhan.nhom_mau || '',
       bhyt: benhNhan.bhyt || '',
-      phong: benhNhan.phong || '',
+      phong: '', // Không dùng nữa
       kha_nang_sinh_hoat: benhNhan.kha_nang_sinh_hoat || 'doc_lap',
       ngay_nhap_vien: benhNhan.ngay_nhap_vien ? benhNhan.ngay_nhap_vien.split('T')[0] : new Date().toISOString().split('T')[0],
       tinh_trang_hien_tai: benhNhan.tinh_trang_hien_tai || 'Đang điều trị',
     });
+    
+    // Load phòng hiện tại của bệnh nhân
+    try {
+      const phongResponse = await phongAPI.getByBenhNhan(benhNhan.id);
+      if (phongResponse.data && phongResponse.data.id_phong) {
+        setCurrentPhong(phongResponse.data);
+        // Load phân khu và phòng để hiển thị dropdown
+        await loadPhanKhus();
+        // Tìm phân khu từ phòng
+        const phongDetailResponse = await phongNewAPI.getById(phongResponse.data.id_phong);
+        if (phongDetailResponse.data && phongDetailResponse.data.id_phan_khu) {
+          setSelectedPhanKhu(phongDetailResponse.data.id_phan_khu);
+          await loadPhongs(phongDetailResponse.data.id_phan_khu);
+          setSelectedPhong(phongResponse.data.id_phong);
+        }
+      } else {
+        setCurrentPhong(null);
+        setSelectedPhanKhu('');
+        setSelectedPhong(null);
+        setPhongs([]);
+        await loadPhanKhus();
+      }
+    } catch (error) {
+      console.error('Error loading phong:', error);
+      setCurrentPhong(null);
+      await loadPhanKhus();
+    }
     
     // Load dịch vụ hiện tại của bệnh nhân
     try {
@@ -276,6 +363,10 @@ export default function BenhNhanPage() {
     setThanhToanType('chua_thanh_toan');
     setSoTienThanhToan('');
     setCurrentDichVu(null);
+    setSelectedPhanKhu('');
+    setSelectedPhong(null);
+    setPhongs([]);
+    setCurrentPhong(null);
   };
 
   return (
@@ -549,18 +640,53 @@ export default function BenhNhanPage() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Phòng
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.phong}
-                      onChange={(e) => setFormData({ ...formData, phong: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="VD: A101, B205..."
-                    />
-                  </div>
+                  {/* Chỉ hiển thị khi sửa bệnh nhân */}
+                  {editing && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Phòng
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <select
+                          value={selectedPhanKhu}
+                          onChange={(e) => {
+                            setSelectedPhanKhu(e.target.value);
+                            setSelectedPhong(null);
+                            loadPhongs(e.target.value);
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Chọn phân khu</option>
+                          {phanKhus.map((pk) => (
+                            <option key={pk.id} value={pk.id}>{pk.ten_khu}</option>
+                          ))}
+                        </select>
+                        <select
+                          value={selectedPhong || ''}
+                          onChange={(e) => setSelectedPhong(e.target.value ? parseInt(e.target.value) : null)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          disabled={!selectedPhanKhu}
+                        >
+                          <option value="">Chọn phòng</option>
+                          {phongs.map((p) => {
+                            const currentCount = p.benh_nhans?.length || 0;
+                            const maxCapacity = p.so_nguoi_toi_da || 1;
+                            const availableSlots = maxCapacity - currentCount;
+                            return (
+                              <option key={p.id} value={p.id}>
+                                {p.ten_phong} {p.so_phong ? `(${p.so_phong})` : ''} - Còn {availableSlots}/{maxCapacity} chỗ
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </div>
+                      {currentPhong && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Phòng hiện tại: {currentPhong.khu}-{currentPhong.phong}
+                        </p>
+                      )}
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Khả năng sinh hoạt *

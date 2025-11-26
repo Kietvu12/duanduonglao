@@ -25,6 +25,9 @@ import nguoiThanRoutes from './routes/nguoiThanRoutes.js';
 import doDungRoutes from './routes/doDungRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import benhNhanDichVuRoutes from './routes/benhNhanDichVuRoutes.js';
+import loaiBenhLyRoutes from './routes/loaiBenhLyRoutes.js';
+import thongTinBenhRoutes from './routes/thongTinBenhRoutes.js';
+import { startPhanCaScheduler } from './services/phanCaScheduler.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -72,6 +75,8 @@ app.use('/api/nguoi-than', nguoiThanRoutes);
 app.use('/api/do-dung', doDungRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/benh-nhan-dich-vu', benhNhanDichVuRoutes);
+app.use('/api/loai-benh-ly', loaiBenhLyRoutes);
+app.use('/api/thong-tin-benh', thongTinBenhRoutes);
 
 // Error handling
 app.use(notFound);
@@ -82,5 +87,8 @@ app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
   console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+  
+  // Start phân ca scheduler
+  startPhanCaScheduler();
 });
 

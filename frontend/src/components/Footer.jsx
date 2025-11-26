@@ -13,7 +13,7 @@ const Footer = () => {
   ];
 
   return (
-    <div className="relative">
+    <div className="top-40 relative">
       {/* Legal and CTA Section - Half overlapping footer */}
       <div className="absolute top-10 left-0 right-0 transform -translate-y-1/2 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

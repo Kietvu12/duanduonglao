@@ -2,33 +2,56 @@ import pool from '../config/database.js';
 
 export const getAllPhong = async (req, res, next) => {
   try {
-    const { khu, phong } = req.query;
+    const { id_phong, id_benh_nhan } = req.query;
 
     let query = `
-      SELECT po.*, bn.ho_ten, bn.loai_dich_vu
-      FROM phong_o_benh_nhan po
-      JOIN benh_nhan bn ON po.id_benh_nhan = bn.id
+      SELECT pobn.*, bn.ho_ten, p.ten_phong, p.so_phong, pk.ten_khu as ten_khu_phan_khu,
+             p.so_phong as so_phong_thuc_te
+      FROM phong_o_benh_nhan pobn
+      JOIN benh_nhan bn ON pobn.id_benh_nhan = bn.id
+      LEFT JOIN phong p ON pobn.id_phong = p.id AND p.da_xoa = 0
+      LEFT JOIN phan_khu pk ON p.id_phan_khu = pk.id
       WHERE bn.da_xoa = 0
     `;
     const params = [];
 
-    if (khu) {
-      query += ' AND po.khu = ?';
-      params.push(khu);
+    // Nếu filter theo id_benh_nhan, lấy tất cả phòng (bao gồm cả đã kết thúc)
+    // Nếu không, chỉ lấy phòng đang ở
+    if (id_benh_nhan) {
+      query += ' AND pobn.id_benh_nhan = ?';
+      params.push(id_benh_nhan);
+    } else {
+      query += ' AND (pobn.ngay_ket_thuc_o IS NULL OR pobn.ngay_ket_thuc_o >= CURDATE())';
     }
 
-    if (phong) {
-      query += ' AND po.phong = ?';
-      params.push(phong);
+    if (id_phong) {
+      query += ' AND pobn.id_phong = ?';
+      params.push(id_phong);
     }
 
-    query += ' ORDER BY po.khu, po.phong, po.giuong';
+    query += ' ORDER BY pobn.ngay_bat_dau_o DESC';
 
     const [phongs] = await pool.execute(query, params);
 
+    // Format dữ liệu để tương thích với frontend
+    const formattedPhongs = phongs.map(p => ({
+      id: p.id,
+      id_benh_nhan: p.id_benh_nhan,
+      id_phong: p.id_phong,
+      khu: p.ten_khu_phan_khu || p.ten_khu || '',
+      phong: p.so_phong_thuc_te || p.so_phong || p.ten_phong || '',
+      ten_phong: p.ten_phong || '',
+      so_phong: p.so_phong_thuc_te || p.so_phong || '',
+      so_phong_thuc_te: p.so_phong_thuc_te || p.so_phong || '',
+      ten_khu_phan_khu: p.ten_khu_phan_khu || p.ten_khu || '',
+      ngay_bat_dau_o: p.ngay_bat_dau_o,
+      ngay_ket_thuc_o: p.ngay_ket_thuc_o,
+      display: `${p.ten_khu_phan_khu || p.ten_khu || ''}-${p.so_phong_thuc_te || p.so_phong || p.ten_phong || ''}`
+    }));
+
     res.json({
       success: true,
-      data: phongs
+      data: formattedPhongs
     });
   } catch (error) {
     next(error);
@@ -39,14 +62,48 @@ export const getPhongByBenhNhan = async (req, res, next) => {
   try {
     const { id } = req.params;
 
+    // Lấy phòng đang ở (chưa kết thúc) với thông tin đầy đủ
     const [phongs] = await pool.execute(
-      'SELECT * FROM phong_o_benh_nhan WHERE id_benh_nhan = ?',
+      `SELECT pobn.*, 
+              p.ten_phong, p.so_phong as so_phong_thuc_te, p.so_giuong,
+              pk.ten_khu as ten_khu_phan_khu
+       FROM phong_o_benh_nhan pobn
+       LEFT JOIN phong p ON pobn.id_phong = p.id AND p.da_xoa = 0
+       LEFT JOIN phan_khu pk ON p.id_phan_khu = pk.id
+       WHERE pobn.id_benh_nhan = ?
+         AND (pobn.ngay_ket_thuc_o IS NULL OR pobn.ngay_ket_thuc_o >= CURDATE())
+       ORDER BY pobn.ngay_bat_dau_o DESC
+       LIMIT 1`,
       [id]
     );
 
+    if (phongs.length === 0) {
+      return res.json({
+        success: true,
+        data: null
+      });
+    }
+
+    const phongData = phongs[0];
+    
+    // Format dữ liệu để tương thích với frontend
+    const result = {
+      id: phongData.id,
+      id_benh_nhan: phongData.id_benh_nhan,
+      id_phong: phongData.id_phong,
+      khu: phongData.ten_khu_phan_khu || '',
+      phong: phongData.so_phong_thuc_te || phongData.ten_phong || '',
+      ten_phong: phongData.ten_phong || '',
+      so_phong: phongData.so_phong_thuc_te || '',
+      giuong: phongData.so_giuong ? `1` : '', // Có thể cải thiện sau
+      ngay_bat_dau_o: phongData.ngay_bat_dau_o,
+      ngay_ket_thuc_o: phongData.ngay_ket_thuc_o,
+      display: `${phongData.ten_khu_phan_khu || ''}-${phongData.so_phong_thuc_te || phongData.ten_phong || ''}`
+    };
+
     res.json({
       success: true,
-      data: phongs[0] || null
+      data: result
     });
   } catch (error) {
     next(error);
@@ -55,89 +112,109 @@ export const getPhongByBenhNhan = async (req, res, next) => {
 
 export const createPhong = async (req, res, next) => {
   try {
-    const { id_benh_nhan, khu, phong, giuong } = req.body;
+    const { id_benh_nhan, id_phong, ngay_bat_dau_o, ngay_ket_thuc_o } = req.body;
 
-    if (!id_benh_nhan || !khu || !phong) {
+    if (!id_benh_nhan || !id_phong) {
       return res.status(400).json({
         success: false,
-        message: 'Vui lòng điền đầy đủ thông tin bắt buộc'
+        message: 'Vui lòng điền đầy đủ thông tin bắt buộc (id_benh_nhan, id_phong)'
       });
     }
 
-    // Check if patient already has a room
+    // Kiểm tra bệnh nhân có đang ở phòng nào chưa (chưa kết thúc)
     const [existing] = await pool.execute(
-      'SELECT id FROM phong_o_benh_nhan WHERE id_benh_nhan = ?',
+      `SELECT id, id_phong FROM phong_o_benh_nhan 
+       WHERE id_benh_nhan = ? 
+         AND (ngay_ket_thuc_o IS NULL OR ngay_ket_thuc_o >= CURDATE())`,
       [id_benh_nhan]
     );
 
+    // Nếu bệnh nhân đang có phòng, tự động kết thúc phòng cũ
     if (existing.length > 0) {
+      const oldRoomId = existing[0].id;
+      const oldPhongId = existing[0].id_phong;
+      const ngayKetThuc = new Date().toISOString().split('T')[0];
+      
+      // Kết thúc phòng cũ
+      await pool.execute(
+        'UPDATE phong_o_benh_nhan SET ngay_ket_thuc_o = ? WHERE id = ?',
+        [ngayKetThuc, oldRoomId]
+      );
+
+      // Cập nhật trạng thái phòng cũ (nếu không còn ai ở)
+      const [remainingInOldRoom] = await pool.execute(
+        `SELECT COUNT(*) as count 
+         FROM phong_o_benh_nhan pobn
+         JOIN benh_nhan bn ON pobn.id_benh_nhan = bn.id
+         WHERE bn.da_xoa = 0 
+           AND pobn.id_phong = ?
+           AND (pobn.ngay_ket_thuc_o IS NULL OR pobn.ngay_ket_thuc_o >= CURDATE())`,
+        [oldPhongId]
+      );
+      
+      const remainingCount = remainingInOldRoom[0]?.count || 0;
+      const oldRoomStatus = remainingCount > 0 ? 'co_nguoi' : 'trong';
+      await pool.execute(
+        'UPDATE phong SET trang_thai = ? WHERE id = ?',
+        [oldRoomStatus, oldPhongId]
+      );
+    }
+
+    // Kiểm tra phòng có tồn tại không
+    const [phongInfo] = await pool.execute(
+      'SELECT * FROM phong WHERE id = ? AND da_xoa = 0',
+      [id_phong]
+    );
+
+    if (phongInfo.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'Bệnh nhân đã có phòng được phân bổ'
+        message: 'Phòng không tồn tại'
       });
     }
 
-    // Kiểm tra số người tối đa trong phòng
-    // Tìm phòng trong bảng phong dựa trên khu và phong
-    const [phongInfo] = await pool.execute(
-      `SELECT p.*, pk.ten_khu 
-       FROM phong p
-       JOIN phan_khu pk ON p.id_phan_khu = pk.id
-       WHERE pk.ten_khu = ? 
-         AND (p.so_phong = ? OR p.ten_phong = ?)
-         AND p.da_xoa = 0`,
-      [khu, phong, phong]
+    const phongData = phongInfo[0];
+
+    // Đếm số bệnh nhân hiện tại trong phòng (chưa kết thúc)
+    const [currentPatients] = await pool.execute(
+      `SELECT COUNT(*) as count 
+       FROM phong_o_benh_nhan pobn
+       JOIN benh_nhan bn ON pobn.id_benh_nhan = bn.id
+       WHERE bn.da_xoa = 0 
+         AND pobn.id_phong = ?
+         AND (pobn.ngay_ket_thuc_o IS NULL OR pobn.ngay_ket_thuc_o >= CURDATE())`,
+      [id_phong]
     );
 
-    if (phongInfo.length > 0) {
-      const phongData = phongInfo[0];
-      // Đếm số bệnh nhân hiện tại trong phòng
-      const [currentPatients] = await pool.execute(
-        `SELECT COUNT(*) as count 
-         FROM phong_o_benh_nhan pobn
-         JOIN benh_nhan bn ON pobn.id_benh_nhan = bn.id
-         WHERE bn.da_xoa = 0 
-           AND pobn.khu = ? 
-           AND (pobn.phong = ? OR pobn.phong = ?)`,
-        [khu, phong, phong]
-      );
+    const currentCount = currentPatients[0]?.count || 0;
+    const maxCapacity = phongData.so_nguoi_toi_da || 1;
 
-      const currentCount = currentPatients[0]?.count || 0;
-      const maxCapacity = phongData.so_nguoi_toi_da || 1;
-
-      if (currentCount >= maxCapacity) {
-        return res.status(400).json({
-          success: false,
-          message: `Phòng đã đầy. Số người hiện tại: ${currentCount}/${maxCapacity}. Không thể thêm bệnh nhân vào phòng này.`
-        });
-      }
+    if (currentCount >= maxCapacity) {
+      return res.status(400).json({
+        success: false,
+        message: `Phòng đã đầy. Số người hiện tại: ${currentCount}/${maxCapacity}. Không thể thêm bệnh nhân vào phòng này.`
+      });
     }
 
+    // Thêm bệnh nhân vào phòng
     const [result] = await pool.execute(
-      'INSERT INTO phong_o_benh_nhan (id_benh_nhan, khu, phong, giuong) VALUES (?, ?, ?, ?)',
-      [id_benh_nhan, khu, phong, giuong]
+      'INSERT INTO phong_o_benh_nhan (id_benh_nhan, id_phong, ngay_bat_dau_o, ngay_ket_thuc_o) VALUES (?, ?, ?, ?)',
+      [
+        id_benh_nhan, 
+        id_phong, 
+        ngay_bat_dau_o || new Date().toISOString().split('T')[0],
+        ngay_ket_thuc_o || null
+      ]
     );
 
-    // Cập nhật trạng thái phòng nếu có
-    if (phongInfo.length > 0) {
-      const phongData = phongInfo[0];
-      const [currentPatients] = await pool.execute(
-        `SELECT COUNT(*) as count 
-         FROM phong_o_benh_nhan pobn
-         JOIN benh_nhan bn ON pobn.id_benh_nhan = bn.id
-         WHERE bn.da_xoa = 0 
-           AND pobn.khu = ? 
-           AND (pobn.phong = ? OR pobn.phong = ?)`,
-        [khu, phong, phong]
-      );
-      const newCount = currentPatients[0]?.count || 0;
-      const newStatus = newCount > 0 ? 'co_nguoi' : 'trong';
-      
-      await pool.execute(
-        'UPDATE phong SET trang_thai = ? WHERE id = ?',
-        [newStatus, phongData.id]
-      );
-    }
+    // Cập nhật trạng thái phòng
+    const newCount = currentCount + 1;
+    const newStatus = newCount > 0 ? 'co_nguoi' : 'trong';
+    
+    await pool.execute(
+      'UPDATE phong SET trang_thai = ? WHERE id = ?',
+      [newStatus, id_phong]
+    );
 
     res.status(201).json({
       success: true,
@@ -152,7 +229,7 @@ export const createPhong = async (req, res, next) => {
 export const updatePhong = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { khu, phong, giuong } = req.body;
+    const { id_phong, ngay_bat_dau_o, ngay_ket_thuc_o } = req.body;
 
     // Lấy thông tin phòng hiện tại
     const [currentRoom] = await pool.execute(
@@ -167,63 +244,62 @@ export const updatePhong = async (req, res, next) => {
       });
     }
 
-    const oldKhu = currentRoom[0].khu;
-    const oldPhong = currentRoom[0].phong;
-    const newKhu = khu !== undefined ? khu : oldKhu;
-    const newPhong = phong !== undefined ? phong : oldPhong;
+    const oldIdPhong = currentRoom[0].id_phong;
+    const newIdPhong = id_phong !== undefined ? id_phong : oldIdPhong;
 
     // Nếu đổi phòng, kiểm tra số người tối đa
-    if ((khu !== undefined && khu !== oldKhu) || (phong !== undefined && phong !== oldPhong)) {
+    if (id_phong !== undefined && id_phong !== oldIdPhong) {
+      // Kiểm tra phòng mới có tồn tại không
       const [phongInfo] = await pool.execute(
-        `SELECT p.*, pk.ten_khu 
-         FROM phong p
-         JOIN phan_khu pk ON p.id_phan_khu = pk.id
-         WHERE pk.ten_khu = ? 
-           AND (p.so_phong = ? OR p.ten_phong = ?)
-           AND p.da_xoa = 0`,
-        [newKhu, newPhong, newPhong]
+        'SELECT * FROM phong WHERE id = ? AND da_xoa = 0',
+        [id_phong]
       );
 
-      if (phongInfo.length > 0) {
-        const phongData = phongInfo[0];
-        // Đếm số bệnh nhân hiện tại trong phòng mới (không tính bệnh nhân đang đổi)
-        const [currentPatients] = await pool.execute(
-          `SELECT COUNT(*) as count 
-           FROM phong_o_benh_nhan pobn
-           JOIN benh_nhan bn ON pobn.id_benh_nhan = bn.id
-           WHERE bn.da_xoa = 0 
-             AND pobn.id != ?
-             AND pobn.khu = ? 
-             AND (pobn.phong = ? OR pobn.phong = ?)`,
-          [id, newKhu, newPhong, newPhong]
-        );
+      if (phongInfo.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Phòng không tồn tại'
+        });
+      }
 
-        const currentCount = currentPatients[0]?.count || 0;
-        const maxCapacity = phongData.so_nguoi_toi_da || 1;
+      const phongData = phongInfo[0];
+      // Đếm số bệnh nhân hiện tại trong phòng mới (không tính bệnh nhân đang đổi)
+      const [currentPatients] = await pool.execute(
+        `SELECT COUNT(*) as count 
+         FROM phong_o_benh_nhan pobn
+         JOIN benh_nhan bn ON pobn.id_benh_nhan = bn.id
+         WHERE bn.da_xoa = 0 
+           AND pobn.id != ?
+           AND pobn.id_phong = ?
+           AND (pobn.ngay_ket_thuc_o IS NULL OR pobn.ngay_ket_thuc_o >= CURDATE())`,
+        [id, id_phong]
+      );
 
-        if (currentCount >= maxCapacity) {
-          return res.status(400).json({
-            success: false,
-            message: `Phòng đã đầy. Số người hiện tại: ${currentCount}/${maxCapacity}. Không thể chuyển bệnh nhân vào phòng này.`
-          });
-        }
+      const currentCount = currentPatients[0]?.count || 0;
+      const maxCapacity = phongData.so_nguoi_toi_da || 1;
+
+      if (currentCount >= maxCapacity) {
+        return res.status(400).json({
+          success: false,
+          message: `Phòng đã đầy. Số người hiện tại: ${currentCount}/${maxCapacity}. Không thể chuyển bệnh nhân vào phòng này.`
+        });
       }
     }
 
     const updateFields = [];
     const updateValues = [];
 
-    if (khu !== undefined) {
-      updateFields.push('khu = ?');
-      updateValues.push(khu);
+    if (id_phong !== undefined) {
+      updateFields.push('id_phong = ?');
+      updateValues.push(id_phong);
     }
-    if (phong !== undefined) {
-      updateFields.push('phong = ?');
-      updateValues.push(phong);
+    if (ngay_bat_dau_o !== undefined) {
+      updateFields.push('ngay_bat_dau_o = ?');
+      updateValues.push(ngay_bat_dau_o);
     }
-    if (giuong !== undefined) {
-      updateFields.push('giuong = ?');
-      updateValues.push(giuong);
+    if (ngay_ket_thuc_o !== undefined) {
+      updateFields.push('ngay_ket_thuc_o = ?');
+      updateValues.push(ngay_ket_thuc_o);
     }
 
     if (updateFields.length === 0) {
@@ -241,64 +317,40 @@ export const updatePhong = async (req, res, next) => {
     );
 
     // Cập nhật trạng thái phòng cũ và mới
-    if ((khu !== undefined && khu !== oldKhu) || (phong !== undefined && phong !== oldPhong)) {
+    if (id_phong !== undefined && id_phong !== oldIdPhong) {
       // Cập nhật phòng cũ
-      const [oldPhongInfo] = await pool.execute(
-        `SELECT p.*, pk.ten_khu 
-         FROM phong p
-         JOIN phan_khu pk ON p.id_phan_khu = pk.id
-         WHERE pk.ten_khu = ? 
-           AND (p.so_phong = ? OR p.ten_phong = ?)
-           AND p.da_xoa = 0`,
-        [oldKhu, oldPhong, oldPhong]
+      const [oldPatients] = await pool.execute(
+        `SELECT COUNT(*) as count 
+         FROM phong_o_benh_nhan pobn
+         JOIN benh_nhan bn ON pobn.id_benh_nhan = bn.id
+         WHERE bn.da_xoa = 0 
+           AND pobn.id_phong = ?
+           AND (pobn.ngay_ket_thuc_o IS NULL OR pobn.ngay_ket_thuc_o >= CURDATE())`,
+        [oldIdPhong]
       );
-
-      if (oldPhongInfo.length > 0) {
-        const [oldPatients] = await pool.execute(
-          `SELECT COUNT(*) as count 
-           FROM phong_o_benh_nhan pobn
-           JOIN benh_nhan bn ON pobn.id_benh_nhan = bn.id
-           WHERE bn.da_xoa = 0 
-             AND pobn.khu = ? 
-             AND (pobn.phong = ? OR pobn.phong = ?)`,
-          [oldKhu, oldPhong, oldPhong]
-        );
-        const oldCount = oldPatients[0]?.count || 0;
-        const oldStatus = oldCount > 0 ? 'co_nguoi' : 'trong';
-        await pool.execute(
-          'UPDATE phong SET trang_thai = ? WHERE id = ?',
-          [oldStatus, oldPhongInfo[0].id]
-        );
-      }
+      const oldCount = oldPatients[0]?.count || 0;
+      const oldStatus = oldCount > 0 ? 'co_nguoi' : 'trong';
+      await pool.execute(
+        'UPDATE phong SET trang_thai = ? WHERE id = ?',
+        [oldStatus, oldIdPhong]
+      );
 
       // Cập nhật phòng mới
-      const [newPhongInfo] = await pool.execute(
-        `SELECT p.*, pk.ten_khu 
-         FROM phong p
-         JOIN phan_khu pk ON p.id_phan_khu = pk.id
-         WHERE pk.ten_khu = ? 
-           AND (p.so_phong = ? OR p.ten_phong = ?)
-           AND p.da_xoa = 0`,
-        [newKhu, newPhong, newPhong]
+      const [newPatients] = await pool.execute(
+        `SELECT COUNT(*) as count 
+         FROM phong_o_benh_nhan pobn
+         JOIN benh_nhan bn ON pobn.id_benh_nhan = bn.id
+         WHERE bn.da_xoa = 0 
+           AND pobn.id_phong = ?
+           AND (pobn.ngay_ket_thuc_o IS NULL OR pobn.ngay_ket_thuc_o >= CURDATE())`,
+        [id_phong]
       );
-
-      if (newPhongInfo.length > 0) {
-        const [newPatients] = await pool.execute(
-          `SELECT COUNT(*) as count 
-           FROM phong_o_benh_nhan pobn
-           JOIN benh_nhan bn ON pobn.id_benh_nhan = bn.id
-           WHERE bn.da_xoa = 0 
-             AND pobn.khu = ? 
-             AND (pobn.phong = ? OR pobn.phong = ?)`,
-          [newKhu, newPhong, newPhong]
-        );
-        const newCount = newPatients[0]?.count || 0;
-        const newStatus = newCount > 0 ? 'co_nguoi' : 'trong';
-        await pool.execute(
-          'UPDATE phong SET trang_thai = ? WHERE id = ?',
-          [newStatus, newPhongInfo[0].id]
-        );
-      }
+      const newCount = newPatients[0]?.count || 0;
+      const newStatus = newCount > 0 ? 'co_nguoi' : 'trong';
+      await pool.execute(
+        'UPDATE phong SET trang_thai = ? WHERE id = ?',
+        [newStatus, id_phong]
+      );
     }
 
     res.json({
@@ -327,38 +379,28 @@ export const deletePhong = async (req, res, next) => {
       });
     }
 
-    const { khu, phong } = currentRoom[0];
+    const idPhong = currentRoom[0].id_phong;
 
     // Xóa phân phòng
     await pool.execute('DELETE FROM phong_o_benh_nhan WHERE id = ?', [id]);
 
     // Cập nhật trạng thái phòng
-    const [phongInfo] = await pool.execute(
-      `SELECT p.*, pk.ten_khu 
-       FROM phong p
-       JOIN phan_khu pk ON p.id_phan_khu = pk.id
-       WHERE pk.ten_khu = ? 
-         AND (p.so_phong = ? OR p.ten_phong = ?)
-         AND p.da_xoa = 0`,
-      [khu, phong, phong]
-    );
-
-    if (phongInfo.length > 0) {
+    if (idPhong) {
       const [remainingPatients] = await pool.execute(
         `SELECT COUNT(*) as count 
          FROM phong_o_benh_nhan pobn
          JOIN benh_nhan bn ON pobn.id_benh_nhan = bn.id
          WHERE bn.da_xoa = 0 
-           AND pobn.khu = ? 
-           AND (pobn.phong = ? OR pobn.phong = ?)`,
-        [khu, phong, phong]
+           AND pobn.id_phong = ?
+           AND (pobn.ngay_ket_thuc_o IS NULL OR pobn.ngay_ket_thuc_o >= CURDATE())`,
+        [idPhong]
       );
       const remainingCount = remainingPatients[0]?.count || 0;
       const newStatus = remainingCount > 0 ? 'co_nguoi' : 'trong';
       
       await pool.execute(
         'UPDATE phong SET trang_thai = ? WHERE id = ?',
-        [newStatus, phongInfo[0].id]
+        [newStatus, idPhong]
       );
     }
 
@@ -378,55 +420,50 @@ export const deletePhongByBenhNhan = async (req, res, next) => {
 
     // Lấy thông tin phòng trước khi xóa
     const [currentRoom] = await pool.execute(
-      'SELECT * FROM phong_o_benh_nhan WHERE id_benh_nhan = ?',
+      `SELECT * FROM phong_o_benh_nhan 
+       WHERE id_benh_nhan = ? 
+         AND (ngay_ket_thuc_o IS NULL OR ngay_ket_thuc_o >= CURDATE())`,
       [id_benh_nhan]
     );
 
     if (currentRoom.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Bệnh nhân chưa có phòng được phân bổ'
+        message: 'Bệnh nhân chưa có phòng được phân bổ hoặc đã kết thúc'
       });
     }
 
-    const { khu, phong } = currentRoom[0];
+    const idPhong = currentRoom[0].id_phong;
 
-    // Xóa phân phòng
-    await pool.execute('DELETE FROM phong_o_benh_nhan WHERE id_benh_nhan = ?', [id_benh_nhan]);
-
-    // Cập nhật trạng thái phòng
-    const [phongInfo] = await pool.execute(
-      `SELECT p.*, pk.ten_khu 
-       FROM phong p
-       JOIN phan_khu pk ON p.id_phan_khu = pk.id
-       WHERE pk.ten_khu = ? 
-         AND (p.so_phong = ? OR p.ten_phong = ?)
-         AND p.da_xoa = 0`,
-      [khu, phong, phong]
+    // Cập nhật ngày kết thúc thay vì xóa
+    await pool.execute(
+      'UPDATE phong_o_benh_nhan SET ngay_ket_thuc_o = CURDATE() WHERE id_benh_nhan = ? AND (ngay_ket_thuc_o IS NULL OR ngay_ket_thuc_o >= CURDATE())',
+      [id_benh_nhan]
     );
 
-    if (phongInfo.length > 0) {
+    // Cập nhật trạng thái phòng
+    if (idPhong) {
       const [remainingPatients] = await pool.execute(
         `SELECT COUNT(*) as count 
          FROM phong_o_benh_nhan pobn
          JOIN benh_nhan bn ON pobn.id_benh_nhan = bn.id
          WHERE bn.da_xoa = 0 
-           AND pobn.khu = ? 
-           AND (pobn.phong = ? OR pobn.phong = ?)`,
-        [khu, phong, phong]
+           AND pobn.id_phong = ?
+           AND (pobn.ngay_ket_thuc_o IS NULL OR pobn.ngay_ket_thuc_o >= CURDATE())`,
+        [idPhong]
       );
       const remainingCount = remainingPatients[0]?.count || 0;
       const newStatus = remainingCount > 0 ? 'co_nguoi' : 'trong';
       
       await pool.execute(
         'UPDATE phong SET trang_thai = ? WHERE id = ?',
-        [newStatus, phongInfo[0].id]
+        [newStatus, idPhong]
       );
     }
 
     res.json({
       success: true,
-      message: 'Xóa bệnh nhân khỏi phòng thành công'
+      message: 'Kết thúc phân phòng thành công'
     });
   } catch (error) {
     next(error);

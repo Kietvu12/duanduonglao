@@ -5,6 +5,7 @@ const menuItems = [
   { path: '/admin/benh-nhan', icon: '👥', label: 'Bệnh nhân' },
   { path: '/admin/nhan-vien', icon: '👨‍⚕️', label: 'Nhân viên' },
   { path: '/admin/lich-kham', icon: '📅', label: 'Lịch khám' },
+  { path: '/admin/lich-hen-tu-van', icon: '📞', label: 'Lịch hẹn tư vấn' },
   { path: '/admin/quan-ly-phong', icon: '🏠', label: 'Quản lý Phòng' },
   { path: '/admin/dich-vu', icon: '🏥', label: 'Dịch vụ' },
   { path: '/admin/su-kien', icon: '🎉', label: 'Sự kiện' },

@@ -280,9 +280,30 @@ export const getLichPhanCa = async (req, res, next) => {
 
     const [lichPhanCas] = await pool.execute(query, params);
 
+    // Format dates to ensure YYYY-MM-DD format (avoid timezone issues)
+    const formattedLichPhanCas = lichPhanCas.map(ca => {
+      let formattedDate = ca.ngay;
+      
+      if (ca.ngay instanceof Date) {
+        // Use local date components to avoid timezone issues
+        const year = ca.ngay.getFullYear();
+        const month = String(ca.ngay.getMonth() + 1).padStart(2, '0');
+        const day = String(ca.ngay.getDate()).padStart(2, '0');
+        formattedDate = `${year}-${month}-${day}`;
+      } else if (typeof ca.ngay === 'string') {
+        // Remove time part if exists (YYYY-MM-DD HH:mm:ss -> YYYY-MM-DD)
+        formattedDate = ca.ngay.split(' ')[0].split('T')[0];
+      }
+      
+      return {
+        ...ca,
+        ngay: formattedDate
+      };
+    });
+
     res.json({
       success: true,
-      data: lichPhanCas
+      data: formattedLichPhanCas
     });
   } catch (error) {
     next(error);
@@ -291,7 +312,7 @@ export const getLichPhanCa = async (req, res, next) => {
 
 export const createLichPhanCa = async (req, res, next) => {
   try {
-    const { id_tai_khoan, ca, ngay, gio_bat_dau, gio_ket_thuc } = req.body;
+    const { id_tai_khoan, ca, ngay, gio_bat_dau, gio_ket_thuc, trang_thai } = req.body;
 
     if (!id_tai_khoan || !ca || !ngay || !gio_bat_dau || !gio_ket_thuc) {
       return res.status(400).json({
@@ -300,10 +321,75 @@ export const createLichPhanCa = async (req, res, next) => {
       });
     }
 
+    // Validate id_tai_khoan exists
+    const [taiKhoan] = await pool.execute(
+      'SELECT id FROM tai_khoan WHERE id = ?',
+      [id_tai_khoan]
+    );
+
+    if (taiKhoan.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID nhân viên không tồn tại'
+      });
+    }
+
+    // Format ngay to YYYY-MM-DD if needed
+    let formattedNgay = ngay;
+    if (ngay instanceof Date) {
+      const year = ngay.getFullYear();
+      const month = String(ngay.getMonth() + 1).padStart(2, '0');
+      const day = String(ngay.getDate()).padStart(2, '0');
+      formattedNgay = `${year}-${month}-${day}`;
+    } else if (typeof ngay === 'string') {
+      // Remove time part if exists
+      formattedNgay = ngay.split(' ')[0].split('T')[0];
+    }
+
+    // Format time to HH:mm:ss if needed
+    // Input type="time" returns HH:mm (24h format), MySQL TIME needs HH:mm:ss
+    let formattedGioBatDau = gio_bat_dau;
+    let formattedGioKetThuc = gio_ket_thuc;
+    
+    // Ensure time format is HH:mm:ss
+    if (formattedGioBatDau) {
+      // Remove any AM/PM if present (shouldn't happen with type="time" but just in case)
+      formattedGioBatDau = formattedGioBatDau.replace(/\s*(AM|PM)/i, '').trim();
+      // If format is HH:mm, add :00
+      if (formattedGioBatDau.length === 5 && formattedGioBatDau.match(/^\d{2}:\d{2}$/)) {
+        formattedGioBatDau = `${formattedGioBatDau}:00`;
+      }
+      // If format is already HH:mm:ss, keep it
+      if (formattedGioBatDau.length === 8 && formattedGioBatDau.match(/^\d{2}:\d{2}:\d{2}$/)) {
+        // Already correct format
+      }
+    }
+    
+    if (formattedGioKetThuc) {
+      // Remove any AM/PM if present
+      formattedGioKetThuc = formattedGioKetThuc.replace(/\s*(AM|PM)/i, '').trim();
+      // If format is HH:mm, add :00
+      if (formattedGioKetThuc.length === 5 && formattedGioKetThuc.match(/^\d{2}:\d{2}$/)) {
+        formattedGioKetThuc = `${formattedGioKetThuc}:00`;
+      }
+      // If format is already HH:mm:ss, keep it
+      if (formattedGioKetThuc.length === 8 && formattedGioKetThuc.match(/^\d{2}:\d{2}:\d{2}$/)) {
+        // Already correct format
+      }
+    }
+    
+    console.log('Time formatting:', { 
+      original: { gio_bat_dau, gio_ket_thuc },
+      formatted: { formattedGioBatDau, formattedGioKetThuc }
+    });
+
+    // Default trang_thai is 'du_kien' if not provided
+    const finalTrangThai = trang_thai || 'du_kien';
+
     const [result] = await pool.execute(
-      `INSERT INTO lich_phan_ca (id_tai_khoan, ca, ngay, gio_bat_dau, gio_ket_thuc)
-       VALUES (?, ?, ?, ?, ?)`,
-      [id_tai_khoan, ca, ngay, gio_bat_dau, gio_ket_thuc]
+      `INSERT INTO lich_phan_ca (id_tai_khoan, ca, ngay, gio_bat_dau, gio_ket_thuc, trang_thai)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [id_tai_khoan, ca, formattedNgay, formattedGioBatDau, formattedGioKetThuc, finalTrangThai]
     );
 
     res.status(201).json({
@@ -312,6 +398,7 @@ export const createLichPhanCa = async (req, res, next) => {
       data: { id: result.insertId }
     });
   } catch (error) {
+    console.error('Error creating lich phan ca:', error);
     next(error);
   }
 };
@@ -362,6 +449,82 @@ export const updateLichPhanCa = async (req, res, next) => {
     res.json({
       success: true,
       message: 'Cập nhật lịch phân ca thành công'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Chuyển ca sang người khác
+export const chuyenCa = async (req, res, next) => {
+  try {
+    const { id } = req.params; // ID của phân ca cần chuyển
+    const { id_tai_khoan_moi } = req.body; // ID nhân viên mới
+
+    if (!id_tai_khoan_moi) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng chọn nhân viên để chuyển ca'
+      });
+    }
+
+    // Lấy thông tin ca cũ
+    const [oldCa] = await pool.execute(
+      'SELECT * FROM lich_phan_ca WHERE id = ?',
+      [id]
+    );
+
+    if (oldCa.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy phân ca'
+      });
+    }
+
+    const caInfo = oldCa[0];
+
+    // Tạo phân ca mới cho nhân viên mới
+    const [result] = await pool.execute(
+      `INSERT INTO lich_phan_ca (id_tai_khoan, ca, ngay, gio_bat_dau, gio_ket_thuc, trang_thai)
+       VALUES (?, ?, ?, ?, ?, 'du_kien')`,
+      [id_tai_khoan_moi, caInfo.ca, caInfo.ngay, caInfo.gio_bat_dau, caInfo.gio_ket_thuc]
+    );
+
+    // Cập nhật ca cũ thành "vang"
+    await pool.execute(
+      'UPDATE lich_phan_ca SET trang_thai = ? WHERE id = ?',
+      ['vang', id]
+    );
+
+    res.json({
+      success: true,
+      message: 'Chuyển ca thành công',
+      data: { id: result.insertId }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteLichPhanCa = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const [result] = await pool.execute(
+      'DELETE FROM lich_phan_ca WHERE id = ?',
+      [id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy lịch phân ca'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Xóa lịch phân ca thành công'
     });
   } catch (error) {
     next(error);

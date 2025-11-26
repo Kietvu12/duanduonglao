@@ -34,23 +34,24 @@ export const getAllBenhNhan = async (req, res, next) => {
                 p.ten_phong, p.so_phong as so_phong_thuc_te, p.so_giuong,
                 pk.ten_khu as ten_khu_phan_khu
          FROM phong_o_benh_nhan pobn
-         LEFT JOIN phong p ON (p.so_phong = pobn.phong OR p.ten_phong = pobn.phong)
-           AND p.da_xoa = 0
+         LEFT JOIN phong p ON pobn.id_phong = p.id AND p.da_xoa = 0
          LEFT JOIN phan_khu pk ON p.id_phan_khu = pk.id
          WHERE pobn.id_benh_nhan = ?
-         ORDER BY pobn.ngay_tao DESC`,
+         ORDER BY pobn.ngay_bat_dau_o DESC`,
         [benhNhan.id]
       );
       
       // Format thông tin phòng
       benhNhan.phongs = phongInfo.map(p => ({
         id: p.id,
-        khu: p.khu || p.ten_khu_phan_khu || '',
-        phong: p.phong || p.so_phong_thuc_te || p.ten_phong || '',
-        giuong: p.giuong || '',
-        ten_phong: p.ten_phong || p.phong || '',
-        so_phong: p.so_phong_thuc_te || p.phong || '',
-        display: `${p.khu || p.ten_khu_phan_khu || ''}-${p.phong || p.so_phong_thuc_te || p.ten_phong || ''}${p.giuong ? `-G${p.giuong}` : ''}`
+        id_phong: p.id_phong,
+        khu: p.ten_khu_phan_khu || '',
+        phong: p.so_phong_thuc_te || p.ten_phong || '',
+        ten_phong: p.ten_phong || '',
+        so_phong: p.so_phong_thuc_te || '',
+        ngay_bat_dau_o: p.ngay_bat_dau_o,
+        ngay_ket_thuc_o: p.ngay_ket_thuc_o,
+        display: `${p.ten_khu_phan_khu || ''}-${p.so_phong_thuc_te || p.ten_phong || ''}`
       }));
 
       // Lấy dịch vụ đang sử dụng
@@ -141,13 +142,42 @@ export const getBenhNhanById = async (req, res, next) => {
       [id]
     );
 
+
+    const [phongInfo] = await pool.execute(
+      `SELECT pobn.*, 
+              p.ten_phong, p.so_phong as so_phong_thuc_te, p.so_giuong,
+              pk.ten_khu as ten_khu_phan_khu
+       FROM phong_o_benh_nhan pobn
+       LEFT JOIN phong p ON pobn.id_phong = p.id AND p.da_xoa = 0
+       LEFT JOIN phan_khu pk ON p.id_phan_khu = pk.id
+       WHERE pobn.id_benh_nhan = ?
+       ORDER BY pobn.ngay_bat_dau_o DESC`,
+      [id]
+    );
+    
+    // Format thông tin phòng
+    const phongs = phongInfo.map(p => ({
+      id: p.id,
+      id_phong: p.id_phong,
+      khu: p.ten_khu_phan_khu || '',
+      phong: p.so_phong_thuc_te || p.ten_phong || '',
+      ten_phong: p.ten_phong || '',
+      so_phong: p.so_phong_thuc_te || '',
+      so_phong_thuc_te: p.so_phong_thuc_te || '',
+      ten_khu_phan_khu: p.ten_khu_phan_khu || '',
+      ngay_bat_dau_o: p.ngay_bat_dau_o,
+      ngay_ket_thuc_o: p.ngay_ket_thuc_o,
+      display: `${p.ten_khu_phan_khu || ''}-${p.so_phong_thuc_te || p.ten_phong || ''}`
+    }));
+
     res.json({
       success: true,
       data: {
         ...benhNhans[0],
         nguoi_than: nguoiThan,
         ho_so_y_te: hoSoYTe[0] || null,
-        benh_hien_tai: benhHienTai
+        benh_hien_tai: benhHienTai,
+        phongs: phongs
       }
     });
   } catch (error) {

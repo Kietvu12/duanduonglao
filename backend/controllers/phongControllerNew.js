@@ -34,21 +34,16 @@ export const getAllPhong = async (req, res, next) => {
 
     // Lấy danh sách bệnh nhân trong mỗi phòng
     for (let phong of phongs) {
-      // Tìm bệnh nhân trong phòng này dựa trên khu và phong
-      // Match bằng: khu = ten_khu AND (phong = so_phong OR phong = ten_phong)
+      // Tìm bệnh nhân trong phòng này dựa trên id_phong
       const [benhNhans] = await pool.execute(
-        `SELECT pobn.*, bn.ho_ten, bn.id as id_benh_nhan, bn.loai_dich_vu, bn.ngay_sinh, bn.gioi_tinh
+        `SELECT pobn.*, bn.ho_ten, bn.id as id_benh_nhan, bn.ngay_sinh, bn.gioi_tinh
          FROM phong_o_benh_nhan pobn
          JOIN benh_nhan bn ON pobn.id_benh_nhan = bn.id
          WHERE bn.da_xoa = 0 
-           AND pobn.khu = ?
-           AND (pobn.phong = ? OR pobn.phong = ?)
-         ORDER BY pobn.giuong`,
-        [
-          phong.ten_khu, 
-          phong.so_phong || '', 
-          phong.ten_phong || ''
-        ]
+           AND pobn.id_phong = ?
+           AND (pobn.ngay_ket_thuc_o IS NULL OR pobn.ngay_ket_thuc_o >= CURDATE())
+         ORDER BY pobn.ngay_bat_dau_o DESC`,
+        [phong.id]
       );
       phong.benh_nhans = benhNhans || [];
     }
@@ -304,12 +299,14 @@ export const deletePhong = async (req, res, next) => {
 
     // Kiểm tra xem phòng có đang được sử dụng không (có bệnh nhân ở không)
     const [phongO] = await pool.execute(
-      'SELECT COUNT(*) as total FROM phong_o_benh_nhan WHERE khu = (SELECT pk.ten_khu FROM phong p JOIN phan_khu pk ON p.id_phan_khu = pk.id WHERE p.id = ?) AND phong = (SELECT so_phong FROM phong WHERE id = ?)',
-      [id, id]
+      `SELECT COUNT(*) as total 
+       FROM phong_o_benh_nhan pobn
+       JOIN benh_nhan bn ON pobn.id_benh_nhan = bn.id
+       WHERE pobn.id_phong = ? 
+         AND bn.da_xoa = 0
+         AND (pobn.ngay_ket_thuc_o IS NULL OR pobn.ngay_ket_thuc_o >= CURDATE())`,
+      [id]
     );
-
-    // Note: Kiểm tra này có thể không chính xác vì phong_o_benh_nhan dùng khu và phong là string
-    // Có thể cần cải thiện logic này sau
 
     await pool.execute(
       'UPDATE phong SET da_xoa = 1, ngay_xoa = NOW() WHERE id = ?',

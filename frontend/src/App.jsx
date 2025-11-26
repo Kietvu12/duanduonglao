@@ -3,6 +3,10 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import HomePage from './pages/HomePage'
+import AboutUs from './pages/AboutUs'
+import Service from './pages/Service'
+import Amenity from './pages/Amenity'
+import Blog from './pages/Blog'
 import AdminLayout from './components/Admin/Layout'
 import AdminHomePage from './pages/Admin/HomePage'
 import Login from './pages/Admin/Login'
@@ -19,6 +23,7 @@ import DinhDuongPage from './pages/Admin/DinhDuongPage'
 import CongViecPage from './pages/Admin/CongViecPage'
 import PhongPage from './pages/Admin/PhongPage'
 import QuanLyPhongPage from './pages/Admin/QuanLyPhongPage'
+import LichHenTuVanPage from './pages/Admin/LichHenTuVanPage'
 import './App.css'
 
 // Protected Route Component
@@ -48,28 +53,28 @@ function App() {
           <Route path="/ve-chung-toi" element={
             <>
               <Navbar />
-              <div className="min-h-screen p-8"><h1 className="text-2xl font-bold">Về chúng tôi</h1></div>
+              <AboutUs />
               <Footer />
             </>
           } />
           <Route path="/dich-vu" element={
             <>
               <Navbar />
-              <div className="min-h-screen p-8"><h1 className="text-2xl font-bold">Dịch vụ</h1></div>
+              <Service />
               <Footer />
             </>
           } />
           <Route path="/tien-ich" element={
             <>
               <Navbar />
-              <div className="min-h-screen p-8"><h1 className="text-2xl font-bold">Tiện ích cho bạn</h1></div>
+              <Amenity />
               <Footer />
             </>
           } />
           <Route path="/blog" element={
             <>
               <Navbar />
-              <div className="min-h-screen p-8"><h1 className="text-2xl font-bold">Blog</h1></div>
+              <Blog />
               <Footer />
             </>
           } />
@@ -104,6 +109,7 @@ function App() {
             <Route path="thuoc" element={<ThuocPage />} />
             <Route path="dinh-duong" element={<DinhDuongPage />} />
             <Route path="cong-viec" element={<CongViecPage />} />
+            <Route path="lich-hen-tu-van" element={<LichHenTuVanPage />} />
           </Route>
         </Routes>
       </Router>

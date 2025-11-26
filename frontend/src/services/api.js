@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://192.168.1.180:3000/api';
 
 // Helper function to get auth token
 const getToken = () => {
@@ -115,11 +115,11 @@ export const benhNhanAPI = {
     method: 'POST',
     body: JSON.stringify(data),
   }),
-  updateTamLyGiaoTiep: (id, tamLyId, data) => apiCall(`/benh-nhan/${id}/tam-ly-giao-tiep/${tamLyId}`, {
+  updateTamLyGiaoTiep: (tamLyId, data) => apiCall(`/benh-nhan/tam-ly-giao-tiep/${tamLyId}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
-  deleteTamLyGiaoTiep: (id, tamLyId) => apiCall(`/benh-nhan/${id}/tam-ly-giao-tiep/${tamLyId}`, {
+  deleteTamLyGiaoTiep: (tamLyId) => apiCall(`/benh-nhan/tam-ly-giao-tiep/${tamLyId}`, {
     method: 'DELETE',
   }),
   // Vận động phục hồi
@@ -131,11 +131,11 @@ export const benhNhanAPI = {
     method: 'POST',
     body: JSON.stringify(data),
   }),
-  updateVanDongPhucHoi: (id, vanDongId, data) => apiCall(`/benh-nhan/${id}/van-dong-phuc-hoi/${vanDongId}`, {
+  updateVanDongPhucHoi: (vanDongId, data) => apiCall(`/benh-nhan/van-dong-phuc-hoi/${vanDongId}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
-  deleteVanDongPhucHoi: (id, vanDongId) => apiCall(`/benh-nhan/${id}/van-dong-phuc-hoi/${vanDongId}`, {
+  deleteVanDongPhucHoi: (vanDongId) => apiCall(`/benh-nhan/van-dong-phuc-hoi/${vanDongId}`, {
     method: 'DELETE',
   }),
   // Bệnh hiện tại
@@ -147,22 +147,25 @@ export const benhNhanAPI = {
     method: 'POST',
     body: JSON.stringify(data),
   }),
-  updateBenhHienTai: (id, benhId, data) => apiCall(`/benh-nhan/${id}/benh-hien-tai/${benhId}`, {
+  updateBenhHienTai: (benhId, data) => apiCall(`/benh-nhan/benh-hien-tai/${benhId}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
-  deleteBenhHienTai: (id, benhId) => apiCall(`/benh-nhan/${id}/benh-hien-tai/${benhId}`, {
+  deleteBenhHienTai: (benhId) => apiCall(`/benh-nhan/benh-hien-tai/${benhId}`, {
     method: 'DELETE',
   }),
   // Hồ sơ y tế
   getHoSoYTe: (id) => apiCall(`/benh-nhan/${id}/ho-so-y-te`),
-  createHoSoYTe: (id, data) => apiCall(`/benh-nhan/${id}/ho-so-y-te`, {
+  createOrUpdateHoSoYTe: (id, data) => apiCall(`/benh-nhan/${id}/ho-so-y-te`, {
     method: 'POST',
     body: JSON.stringify(data),
   }),
   updateHoSoYTe: (id, data) => apiCall(`/benh-nhan/${id}/ho-so-y-te`, {
     method: 'PUT',
     body: JSON.stringify(data),
+  }),
+  deleteHoSoYTe: (id) => apiCall(`/benh-nhan/${id}/ho-so-y-te`, {
+    method: 'DELETE',
   }),
 };
 
@@ -191,6 +194,13 @@ export const nhanVienAPI = {
   }),
   updateLichPhanCa: (id, data) => apiCall(`/nhan-vien/lich-phan-ca/${id}`, {
     method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  deleteLichPhanCa: (id) => apiCall(`/nhan-vien/lich-phan-ca/${id}`, {
+    method: 'DELETE',
+  }),
+  chuyenCa: (id, data) => apiCall(`/nhan-vien/lich-phan-ca/${id}/chuyen-ca`, {
+    method: 'POST',
     body: JSON.stringify(data),
   }),
   createKPI: (data) => apiCall('/nhan-vien/kpi', {
@@ -614,6 +624,26 @@ export const congViecAPI = {
   }),
   updateTrangThai: (id, data) => apiCall(`/cong-viec/${id}/trang-thai`, {
     method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+};
+
+// Loại bệnh lý APIs
+export const loaiBenhLyAPI = {
+  getAll: () => apiCall('/loai-benh-ly'),
+  getById: (id) => apiCall(`/loai-benh-ly/${id}`),
+  create: (data) => apiCall('/loai-benh-ly', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+};
+
+// Thông tin bệnh APIs
+export const thongTinBenhAPI = {
+  getAll: () => apiCall('/thong-tin-benh'),
+  getById: (id) => apiCall(`/thong-tin-benh/${id}`),
+  create: (data) => apiCall('/thong-tin-benh', {
+    method: 'POST',
     body: JSON.stringify(data),
   }),
 };

@@ -162,6 +162,12 @@ export const createBenhNhanDichVu = async (req, res, next) => {
       return value;
     };
 
+    // Luôn cập nhật ngày thanh toán lần cuối là ngày hiện tại khi tạo mới
+    // (dù chưa thanh toán, thanh toán 1 phần hay thanh toán đủ)
+    const finalNgayThanhToanLanCuoi = ngay_thanh_toan_lan_cuoi 
+      ? sanitizeValue(ngay_thanh_toan_lan_cuoi) 
+      : new Date().toISOString().split('T')[0];
+
     const [result] = await pool.execute(
       `INSERT INTO benh_nhan_dich_vu 
        (id_benh_nhan, id_dich_vu, ngay_bat_dau, ngay_ket_thuc, hinh_thuc_thanh_toan, 
@@ -176,7 +182,7 @@ export const createBenhNhanDichVu = async (req, res, next) => {
         finalThanhTien || 0,
         finalDaThanhToan || 0,
         finalCongNo || 0,
-        sanitizeValue(ngay_thanh_toan_lan_cuoi),
+        finalNgayThanhToanLanCuoi,
         trang_thai || 'dang_su_dung'
       ]
     );
@@ -293,9 +299,18 @@ export const updateBenhNhanDichVu = async (req, res, next) => {
       updateValues.push(cong_no_con_lai);
     }
 
+    // Luôn cập nhật ngày thanh toán lần cuối khi sửa dịch vụ
+    // Nếu không được cung cấp, dùng ngày hiện tại
     if (ngay_thanh_toan_lan_cuoi !== undefined) {
       updateFields.push('ngay_thanh_toan_lan_cuoi = ?');
-      updateValues.push(sanitizeValue(ngay_thanh_toan_lan_cuoi));
+      const finalNgayThanhToan = ngay_thanh_toan_lan_cuoi 
+        ? sanitizeValue(ngay_thanh_toan_lan_cuoi) 
+        : new Date().toISOString().split('T')[0];
+      updateValues.push(finalNgayThanhToan);
+    } else {
+      // Nếu không được cung cấp trong request, vẫn cập nhật thành ngày hiện tại
+      updateFields.push('ngay_thanh_toan_lan_cuoi = ?');
+      updateValues.push(new Date().toISOString().split('T')[0]);
     }
 
     if (trang_thai !== undefined) {
