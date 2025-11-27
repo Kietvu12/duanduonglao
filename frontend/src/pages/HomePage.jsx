@@ -9,7 +9,7 @@ import AnimatedSection from '../components/AnimatedSection';
 
 const HomePage = () => {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen font-raleway">
       {/* Session1 không cần animation vì đã có typing effect */}
       <Session1 />
       <AnimatedSection delay={0}>

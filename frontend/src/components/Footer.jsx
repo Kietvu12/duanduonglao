@@ -53,7 +53,9 @@ const Footer = () => {
 
       <footer 
         className="w-full relative bg-cover bg-center bg-no-repeat pt-32 md:pt-36 lg:pt-24"
-        style={{ backgroundImage: `url(${bgFooter})` }}
+        style={{ 
+          backgroundImage: `url(${bgFooter})`
+        }}
       >
         <div className="relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 lg:py-20">
@@ -65,6 +67,17 @@ const Footer = () => {
                   src={logoImage}
                   alt="XUÂN HOA Logo"
                   className="h-20 md:h-24 lg:h-28 w-auto object-contain"
+                  loading="eager"
+                  decoding="async"
+                  style={{ 
+                    width: 'auto',
+                    height: '100%',
+                    maxHeight: '112px',
+                    display: 'block'
+                  }}
+                  onLoad={(e) => {
+                    e.target.style.opacity = '1';
+                  }}
                 />
               </Link>
               <p className="text-white text-sm md:text-base font-raleway-regular leading-relaxed">

@@ -237,6 +237,26 @@ export const lichKhamAPI = {
   }),
 };
 
+// Lịch thăm bệnh APIs
+export const lichThamBenhAPI = {
+  getAll: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiCall(`/lich-tham-benh?${queryString}`);
+  },
+  getById: (id) => apiCall(`/lich-tham-benh/${id}`),
+  create: (data) => apiCall('/lich-tham-benh', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  update: (id, data) => apiCall(`/lich-tham-benh/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  delete: (id) => apiCall(`/lich-tham-benh/${id}`, {
+    method: 'DELETE',
+  }),
+};
+
 // Dịch vụ APIs
 // Bệnh nhân - Dịch vụ APIs
 export const benhNhanDichVuAPI = {

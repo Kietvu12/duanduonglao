@@ -109,42 +109,35 @@ export const getDashboard = async (req, res, next) => {
       ORDER BY dv.ten_dich_vu, thang`
     );
 
-    // Tổng doanh thu theo tháng (12 tháng gần nhất)
-    // Tính doanh thu bằng cách cộng số tiền đã thanh toán (da_thanh_toan) 
-    // theo ngày thanh toán lần cuối (ngay_thanh_toan_lan_cuoi)
-    const [revenueByMonth] = await pool.execute(
+    // Tổng số người nhập viện theo tháng (12 tháng gần nhất)
+    const [admissionsByMonth] = await pool.execute(
       `SELECT 
-        DATE_FORMAT(ngay_thanh_toan_lan_cuoi, '%Y-%m') as thang,
-        COALESCE(SUM(da_thanh_toan), 0) as doanh_thu
-      FROM benh_nhan_dich_vu bndv
-      JOIN benh_nhan bn ON bndv.id_benh_nhan = bn.id
-      WHERE bn.da_xoa = 0
-        AND bndv.ngay_thanh_toan_lan_cuoi IS NOT NULL
-        AND bndv.ngay_thanh_toan_lan_cuoi >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-        AND bndv.da_thanh_toan > 0
-      GROUP BY DATE_FORMAT(ngay_thanh_toan_lan_cuoi, '%Y-%m')
+        DATE_FORMAT(ngay_nhap_vien, '%Y-%m') as thang,
+        COUNT(*) as so_nguoi_nhap_vien
+      FROM benh_nhan
+      WHERE da_xoa = 0
+        AND ngay_nhap_vien IS NOT NULL
+        AND ngay_nhap_vien >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+      GROUP BY DATE_FORMAT(ngay_nhap_vien, '%Y-%m')
       ORDER BY thang`
     );
 
-    // Danh sách công nợ của bệnh nhân
-    const [patientDebts] = await pool.execute(
+    // Danh sách công việc hôm nay
+    const [todayTasks] = await pool.execute(
       `SELECT 
-        bn.id,
-        bn.ho_ten,
-        COALESCE(nt.so_dien_thoai, '') as so_dien_thoai,
-        dv.ten_dich_vu,
-        bndv.thanh_tien,
-        bndv.da_thanh_toan,
-        bndv.cong_no_con_lai,
-        bndv.ngay_thanh_toan_lan_cuoi
-      FROM benh_nhan_dich_vu bndv
-      JOIN benh_nhan bn ON bndv.id_benh_nhan = bn.id
-      JOIN dich_vu dv ON bndv.id_dich_vu = dv.id
-      LEFT JOIN nguoi_than_benh_nhan nt ON bn.id = nt.id_benh_nhan AND nt.la_nguoi_lien_he_chinh = 1
-      WHERE bn.da_xoa = 0 
-        AND bndv.trang_thai = 'dang_su_dung'
-        AND bndv.cong_no_con_lai > 0
-      ORDER BY bndv.cong_no_con_lai DESC
+        cv.id,
+        cv.ten_cong_viec,
+        cv.thoi_gian_du_kien,
+        COALESCE(pc.trang_thai, 'chua_lam') as trang_thai,
+        COALESCE(tk.ho_ten, '') as ten_nguoi_phu_trach,
+        COALESCE(bn.ho_ten, '') as ten_benh_nhan
+      FROM cong_viec cv
+      LEFT JOIN phan_cong_cong_viec pc ON cv.id = pc.id_cong_viec
+      LEFT JOIN tai_khoan tk ON pc.id_dieu_duong = tk.id AND tk.da_xoa = 0
+      LEFT JOIN benh_nhan bn ON pc.id_benh_nhan = bn.id AND (bn.da_xoa = 0 OR bn.da_xoa IS NULL)
+      WHERE cv.thoi_gian_du_kien IS NOT NULL
+        AND DATE(cv.thoi_gian_du_kien) = CURDATE()
+      ORDER BY cv.thoi_gian_du_kien ASC
       LIMIT 20`
     );
 
@@ -187,8 +180,8 @@ export const getDashboard = async (req, res, next) => {
         su_kien_sap_toi: upcomingEvents,
         hoat_dong_gan_day: recentActivities,
         su_dung_dich_vu_theo_thang: serviceUsageByMonth,
-        doanh_thu_theo_thang: revenueByMonth,
-        cong_no_benh_nhan: patientDebts,
+        nguoi_nhap_vien_theo_thang: admissionsByMonth,
+        cong_viec_hom_nay: todayTasks,
         nhan_vien_truc_ca_hom_nay: staffOnDutyList
       }
     });

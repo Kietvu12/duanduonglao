@@ -99,11 +99,12 @@ export default function ThuocPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-raleway p-6 lg:p-8">
+      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Quản lý Thuốc</h1>
-          <p className="text-gray-600 mt-1">Đơn thuốc và quản lý thuốc</p>
+          <h1 className="text-4xl font-black leading-tight tracking-tight text-gray-800">Quản lý Thuốc</h1>
+          <p className="text-gray-600 mt-2">Đơn thuốc và quản lý thuốc</p>
         </div>
         <button
           onClick={() => {
@@ -111,74 +112,95 @@ export default function ThuocPage() {
             setEditing(null);
             setShowModal(true);
           }}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
         >
-          + Tạo đơn thuốc
+          <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>add</span>
+          <span>Tạo đơn thuốc</span>
         </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      {/* Table */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-gray-500">Đang tải...</div>
+          <div className="p-16 text-center text-gray-500">Đang tải...</div>
+        ) : donThuocs.length === 0 ? (
+          <div className="p-16 text-center">
+            <span className="material-symbols-outlined text-6xl text-gray-300 mb-4" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>medication</span>
+            <p className="text-gray-500 text-lg mb-2">Chưa có đơn thuốc nào</p>
+            <p className="text-gray-400 text-sm">Bấm "Tạo đơn thuốc" để bắt đầu</p>
+          </div>
         ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bệnh nhân</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày kê</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số loại thuốc</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {donThuocs.length === 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
                 <tr>
-                  <td colSpan="4" className="px-6 py-4 text-center text-gray-500">
-                    Không có dữ liệu
-                  </td>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Bệnh nhân</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Ngày kê</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Số loại thuốc</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Thao tác</th>
                 </tr>
-              ) : (
-                donThuocs.map((don) => (
-                  <tr key={don.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium">{don.ten_benh_nhan || '-'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {donThuocs.map((don) => (
+                  <tr key={don.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-5 font-semibold text-gray-900">{don.ten_benh_nhan || '-'}</td>
+                    <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-900">
                       {don.ngay_ke ? new Date(don.ngay_ke).toLocaleDateString('vi-VN') : '-'}
                     </td>
-                    <td className="px-6 py-4">{don.thuoc?.length || 0}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                    <td className="px-6 py-5 text-sm text-gray-900">
+                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-[#4A90E2]/10 text-[#4A90E2] rounded-full text-xs font-semibold">
+                        <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>medication</span>
+                        {don.thuoc?.length || 0} loại
+                      </span>
+                    </td>
+                    <td className="px-6 py-5 whitespace-nowrap">
                       <button
                         onClick={() => handleDelete(don.id)}
-                        className="text-red-600 hover:text-red-900"
+                        className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-xs font-semibold"
                       >
-                        Xóa
+                        <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>delete</span>
+                        <span>Xóa</span>
                       </button>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-4">
-              {editing ? 'Sửa đơn thuốc' : 'Tạo đơn thuốc mới'}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 font-raleway p-4">
+          <div className="bg-white rounded-xl p-6 lg:p-8 w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+              <h2 className="text-2xl font-black text-gray-800">
+                {editing ? 'Sửa đơn thuốc' : 'Tạo đơn thuốc mới'}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowModal(false);
+                  setEditing(null);
+                  resetForm();
+                }}
+                className="flex items-center justify-center rounded-lg h-8 w-8 text-gray-600 hover:bg-gray-100 transition-colors"
+                title="Đóng"
+              >
+                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>close</span>
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Bệnh nhân *
                   </label>
                   <select
                     required
                     value={formData.id_benh_nhan}
                     onChange={(e) => setFormData({ ...formData, id_benh_nhan: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-gray-800"
                   >
                     <option value="">Chọn bệnh nhân</option>
                     {benhNhans.map((bn) => (
@@ -187,7 +209,7 @@ export default function ThuocPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Ngày kê *
                   </label>
                   <input
@@ -195,87 +217,96 @@ export default function ThuocPage() {
                     required
                     value={formData.ngay_ke}
                     onChange={(e) => setFormData({ ...formData, ngay_ke: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-gray-800"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Mô tả
                 </label>
                 <textarea
                   value={formData.mo_ta}
                   onChange={(e) => setFormData({ ...formData, mo_ta: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-gray-800"
                   rows="2"
+                  placeholder="Mô tả về đơn thuốc..."
                 />
               </div>
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="block text-sm font-medium text-gray-700">
+              <div className="border-t border-gray-200 pt-6">
+                <div className="flex justify-between items-center mb-4">
+                  <label className="block text-sm font-semibold text-gray-700">
                     Danh sách thuốc *
                   </label>
                   <button
                     type="button"
                     onClick={handleAddThuoc}
-                    className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                    className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold"
                   >
-                    + Thêm thuốc
+                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>add</span>
+                    <span>Thêm thuốc</span>
                   </button>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {formData.thuoc.map((thuoc, index) => (
-                    <div key={index} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-medium">Thuốc {index + 1}</span>
+                    <div key={index} className="border border-gray-200 rounded-xl p-5 bg-gray-50">
+                      <div className="flex justify-between items-center mb-4">
+                        <span className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                          <span className="material-symbols-outlined text-base text-[#4A90E2]" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>medication</span>
+                          Thuốc {index + 1}
+                        </span>
                         {formData.thuoc.length > 1 && (
                           <button
                             type="button"
                             onClick={() => handleRemoveThuoc(index)}
-                            className="text-red-600 hover:text-red-800 text-sm"
+                            className="flex items-center gap-1 px-2 py-1 text-red-600 hover:text-red-800 text-sm font-medium"
                           >
-                            Xóa
+                            <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>delete</span>
+                            <span>Xóa</span>
                           </button>
                         )}
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs text-gray-600 mb-1">Tên thuốc *</label>
+                          <label className="block text-xs font-semibold text-gray-700 mb-2">Tên thuốc *</label>
                           <input
                             type="text"
                             required
                             value={thuoc.ten_thuoc}
                             onChange={(e) => handleThuocChange(index, 'ten_thuoc', e.target.value)}
-                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-sm text-gray-800"
+                            placeholder="Nhập tên thuốc..."
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-600 mb-1">Liều lượng *</label>
+                          <label className="block text-xs font-semibold text-gray-700 mb-2">Liều lượng *</label>
                           <input
                             type="text"
                             required
                             value={thuoc.lieu_luong}
                             onChange={(e) => handleThuocChange(index, 'lieu_luong', e.target.value)}
-                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-sm text-gray-800"
+                            placeholder="VD: 1 viên, 2 viên..."
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-600 mb-1">Thời điểm uống</label>
+                          <label className="block text-xs font-semibold text-gray-700 mb-2">Thời điểm uống</label>
                           <input
                             type="text"
                             value={thuoc.thoi_diem_uong}
                             onChange={(e) => handleThuocChange(index, 'thoi_diem_uong', e.target.value)}
-                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-sm text-gray-800"
                             placeholder="VD: Sáng, Trưa, Tối"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-600 mb-1">Ghi chú</label>
+                          <label className="block text-xs font-semibold text-gray-700 mb-2">Ghi chú</label>
                           <input
                             type="text"
                             value={thuoc.ghi_chu}
                             onChange={(e) => handleThuocChange(index, 'ghi_chu', e.target.value)}
-                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-sm text-gray-800"
+                            placeholder="Ghi chú thêm..."
                           />
                         </div>
                       </div>
@@ -283,7 +314,7 @@ export default function ThuocPage() {
                   ))}
                 </div>
               </div>
-              <div className="flex justify-end space-x-3 pt-4">
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                 <button
                   type="button"
                   onClick={() => {
@@ -291,15 +322,16 @@ export default function ThuocPage() {
                     setEditing(null);
                     resetForm();
                   }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-semibold"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
-                  {editing ? 'Cập nhật' : 'Tạo'}
+                  <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>save</span>
+                  <span>{editing ? 'Cập nhật' : 'Tạo'}</span>
                 </button>
               </div>
             </form>
@@ -309,4 +341,5 @@ export default function ThuocPage() {
     </div>
   );
 }
+
 

@@ -25,8 +25,14 @@ export const uploadFile = async (req, res, next) => {
       loai = 'anh'; // default to image
     }
 
-    // Create URL - adjust based on your server setup
-    const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+    // Create URL - automatically detect from request
+    // Use BASE_URL from env if set, otherwise construct from request
+    let baseUrl = process.env.BASE_URL;
+    if (!baseUrl) {
+      const protocol = req.protocol || 'http';
+      const host = req.get('host') || 'localhost:3000';
+      baseUrl = `${protocol}://${host}`;
+    }
     const fileUrl = `${baseUrl}/uploads/${req.file.filename}`;
 
     res.json({
@@ -54,7 +60,15 @@ export const uploadMultipleFiles = async (req, res, next) => {
       });
     }
 
-    const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+    // Create URL - automatically detect from request
+    // Use BASE_URL from env if set, otherwise construct from request
+    let baseUrl = process.env.BASE_URL;
+    if (!baseUrl) {
+      const protocol = req.protocol || 'http';
+      const host = req.get('host') || 'localhost:3000';
+      baseUrl = `${protocol}://${host}`;
+    }
+    
     const imageExtensions = /\.(jpg|jpeg|png|gif|webp)$/i;
     const videoExtensions = /\.(mp4|mov|avi|wmv|flv|webm)$/i;
 

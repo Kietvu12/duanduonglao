@@ -72,11 +72,27 @@ export const createNguoiThan = async (req, res, next) => {
       );
     }
 
+    // Sanitize values - convert undefined to null for optional fields
+    const sanitizeValue = (value) => {
+      if (value === undefined || value === '') {
+        return null;
+      }
+      return value;
+    };
+
     const [result] = await pool.execute(
       `INSERT INTO nguoi_than_benh_nhan 
        (id_benh_nhan, ho_ten, moi_quan_he, so_dien_thoai, email, la_nguoi_lien_he_chinh, avatar)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [id_benh_nhan, ho_ten, moi_quan_he, so_dien_thoai, email, la_nguoi_lien_he_chinh || 0, avatar]
+      [
+        id_benh_nhan, 
+        ho_ten, 
+        sanitizeValue(moi_quan_he), 
+        so_dien_thoai, 
+        sanitizeValue(email), 
+        la_nguoi_lien_he_chinh || 0, 
+        sanitizeValue(avatar)
+      ]
     );
 
     res.status(201).json({
@@ -124,25 +140,33 @@ export const updateNguoiThan = async (req, res, next) => {
       updateFields.push('ho_ten = ?');
       updateValues.push(ho_ten);
     }
+    // Sanitize function - convert undefined/empty to null
+    const sanitizeValue = (value) => {
+      if (value === undefined || value === '') {
+        return null;
+      }
+      return value;
+    };
+
     if (moi_quan_he !== undefined) {
       updateFields.push('moi_quan_he = ?');
-      updateValues.push(moi_quan_he);
+      updateValues.push(sanitizeValue(moi_quan_he));
     }
     if (so_dien_thoai !== undefined) {
       updateFields.push('so_dien_thoai = ?');
-      updateValues.push(so_dien_thoai);
+      updateValues.push(sanitizeValue(so_dien_thoai));
     }
     if (email !== undefined) {
       updateFields.push('email = ?');
-      updateValues.push(email);
+      updateValues.push(sanitizeValue(email));
     }
     if (la_nguoi_lien_he_chinh !== undefined) {
       updateFields.push('la_nguoi_lien_he_chinh = ?');
-      updateValues.push(la_nguoi_lien_he_chinh);
+      updateValues.push(la_nguoi_lien_he_chinh ? 1 : 0);
     }
     if (avatar !== undefined) {
       updateFields.push('avatar = ?');
-      updateValues.push(avatar);
+      updateValues.push(sanitizeValue(avatar));
     }
 
     if (updateFields.length === 0) {

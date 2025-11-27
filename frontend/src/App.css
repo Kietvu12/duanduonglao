@@ -11,7 +11,7 @@
 }
 
 body {
-  font-family: 'BoldFont', sans-serif;
+  font-family: 'Raleway', sans-serif;
 }
 
 * {
@@ -59,4 +59,39 @@ body {
 
 .read-the-docs {
   color: #888;
+}
+
+/* Image optimization */
+img {
+  max-width: 100%;
+  height: auto;
+  image-rendering: -webkit-optimize-contrast;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+/* Prevent layout shift during image loading */
+img[loading="lazy"] {
+  content-visibility: auto;
+}
+
+/* Smooth image loading */
+img {
+  opacity: 1;
+  transition: opacity 0.3s ease-in-out;
+}
+
+img[src=""],
+img:not([src]) {
+  opacity: 0;
+}
+
+/* Optimize background images */
+[style*="background-image"] {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  image-rendering: -webkit-optimize-contrast;
 }

@@ -3,8 +3,10 @@ import { hashPassword } from '../utils/bcrypt.js';
 
 export const getAllNhanVien = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, search, vai_tro } = req.query;
-    const offset = (page - 1) * limit;
+    // Nhận index (vị trí bắt đầu) và limit (mặc định 8)
+    const { index = 0, limit = 8, search, vai_tro } = req.query;
+    const offset = parseInt(index); // Sử dụng index trực tiếp làm OFFSET
+    const limitValue = parseInt(limit);
 
     let query = `
       SELECT tk.*, hsnv.chuc_vu, hsnv.bang_cap, hsnv.luong_co_ban
@@ -26,7 +28,7 @@ export const getAllNhanVien = async (req, res, next) => {
     }
 
     query += ' ORDER BY tk.ngay_tao DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), offset);
+    params.push(limitValue, offset);
 
     const [nhanViens] = await pool.execute(query, params);
 
@@ -38,9 +40,9 @@ export const getAllNhanVien = async (req, res, next) => {
     const countParams = [];
 
     if (search) {
-      countQuery += ' AND (ho_ten LIKE ? OR so_dien_thoai LIKE ?)';
+      countQuery += ' AND (ho_ten LIKE ? OR so_dien_thoai LIKE ? OR email LIKE ?)';
       const searchTerm = `%${search}%`;
-      countParams.push(searchTerm, searchTerm);
+      countParams.push(searchTerm, searchTerm, searchTerm);
     }
 
     if (vai_tro) {
@@ -51,14 +53,19 @@ export const getAllNhanVien = async (req, res, next) => {
     const [countResult] = await pool.execute(countQuery, countParams);
     const total = countResult[0].total;
 
+    // Tính toán page từ index để hiển thị (page = index / limit + 1)
+    const currentPage = Math.floor(offset / limitValue) + 1;
+    const totalPages = Math.ceil(total / limitValue);
+
     res.json({
       success: true,
       data: nhanViens,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        index: offset,
+        limit: limitValue,
         total,
-        totalPages: Math.ceil(total / limit)
+        totalPages,
+        currentPage
       }
     });
   } catch (error) {

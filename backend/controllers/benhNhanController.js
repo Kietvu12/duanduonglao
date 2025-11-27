@@ -2,28 +2,73 @@ import pool from '../config/database.js';
 
 export const getAllBenhNhan = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, search, tinh_trang } = req.query;
-    const offset = (page - 1) * limit;
+    // Nhận index (vị trí bắt đầu) và limit (mặc định 8)
+    const { 
+      index = 0, 
+      limit = 8, 
+      search, 
+      tinh_trang,
+      gioi_tinh,
+      id_phan_khu,
+      id_phong,
+      id_dich_vu,
+      kha_nang_sinh_hoat
+    } = req.query;
+    const offset = parseInt(index); // Sử dụng index trực tiếp làm OFFSET
+    const limitValue = parseInt(limit);
 
     let query = `
-      SELECT b.*, 
+      SELECT DISTINCT b.*, 
              COUNT(DISTINCT nt.id) as so_nguoi_than,
              COUNT(DISTINCT pc.id) as so_dieu_duong
       FROM benh_nhan b
       LEFT JOIN nguoi_than_benh_nhan nt ON b.id = nt.id_benh_nhan
       LEFT JOIN phan_cong_cong_viec pc ON b.id = pc.id_benh_nhan
+      LEFT JOIN phong_o_benh_nhan pobn ON b.id = pobn.id_benh_nhan
+      LEFT JOIN phong p ON pobn.id_phong = p.id AND p.da_xoa = 0
+      LEFT JOIN benh_nhan_dich_vu bndv ON b.id = bndv.id_benh_nhan AND bndv.trang_thai = 'dang_su_dung'
       WHERE b.da_xoa = 0
     `;
     const params = [];
 
     if (search) {
-      query += ' AND (b.ho_ten LIKE ? OR b.cccd LIKE ? OR b.so_dien_thoai LIKE ?)';
+      query += ' AND (b.ho_ten LIKE ? OR b.cccd LIKE ?)';
       const searchTerm = `%${search}%`;
-      params.push(searchTerm, searchTerm, searchTerm);
+      params.push(searchTerm, searchTerm);
+    }
+
+    if (tinh_trang) {
+      query += ' AND b.tinh_trang_hien_tai = ?';
+      params.push(tinh_trang);
+    }
+
+    if (gioi_tinh) {
+      query += ' AND b.gioi_tinh = ?';
+      params.push(gioi_tinh);
+    }
+
+    if (id_phan_khu) {
+      query += ' AND p.id_phan_khu = ?';
+      params.push(id_phan_khu);
+    }
+
+    if (id_phong) {
+      query += ' AND pobn.id_phong = ? AND (pobn.ngay_ket_thuc_o IS NULL OR pobn.ngay_ket_thuc_o > CURDATE())';
+      params.push(id_phong);
+    }
+
+    if (id_dich_vu) {
+      query += ' AND bndv.id_dich_vu = ?';
+      params.push(id_dich_vu);
+    }
+
+    if (kha_nang_sinh_hoat) {
+      query += ' AND b.kha_nang_sinh_hoat = ?';
+      params.push(kha_nang_sinh_hoat);
     }
 
     query += ' GROUP BY b.id ORDER BY b.ngay_tao DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), offset);
+    params.push(limitValue, offset);
 
     const [benhNhans] = await pool.execute(query, params);
 
@@ -80,26 +125,68 @@ export const getAllBenhNhan = async (req, res, next) => {
     }
 
     // Get total count
-    let countQuery = 'SELECT COUNT(*) as total FROM benh_nhan WHERE da_xoa = 0';
+    let countQuery = `
+      SELECT COUNT(DISTINCT b.id) as total 
+      FROM benh_nhan b
+      LEFT JOIN phong_o_benh_nhan pobn ON b.id = pobn.id_benh_nhan
+      LEFT JOIN phong p ON pobn.id_phong = p.id AND p.da_xoa = 0
+      LEFT JOIN benh_nhan_dich_vu bndv ON b.id = bndv.id_benh_nhan AND bndv.trang_thai = 'dang_su_dung'
+      WHERE b.da_xoa = 0
+    `;
     const countParams = [];
 
     if (search) {
-      countQuery += ' AND (ho_ten LIKE ? OR cccd LIKE ?)';
+      countQuery += ' AND (b.ho_ten LIKE ? OR b.cccd LIKE ?)';
       const searchTerm = `%${search}%`;
       countParams.push(searchTerm, searchTerm);
+    }
+
+    if (tinh_trang) {
+      countQuery += ' AND b.tinh_trang_hien_tai = ?';
+      countParams.push(tinh_trang);
+    }
+
+    if (gioi_tinh) {
+      countQuery += ' AND b.gioi_tinh = ?';
+      countParams.push(gioi_tinh);
+    }
+
+    if (id_phan_khu) {
+      countQuery += ' AND p.id_phan_khu = ?';
+      countParams.push(id_phan_khu);
+    }
+
+    if (id_phong) {
+      countQuery += ' AND pobn.id_phong = ? AND (pobn.ngay_ket_thuc_o IS NULL OR pobn.ngay_ket_thuc_o > CURDATE())';
+      countParams.push(id_phong);
+    }
+
+    if (id_dich_vu) {
+      countQuery += ' AND bndv.id_dich_vu = ?';
+      countParams.push(id_dich_vu);
+    }
+
+    if (kha_nang_sinh_hoat) {
+      countQuery += ' AND b.kha_nang_sinh_hoat = ?';
+      countParams.push(kha_nang_sinh_hoat);
     }
 
     const [countResult] = await pool.execute(countQuery, countParams);
     const total = countResult[0].total;
 
+    // Tính toán page từ index để hiển thị (page = index / limit + 1)
+    const currentPage = Math.floor(offset / limitValue) + 1;
+    const totalPages = Math.ceil(total / limitValue);
+
     res.json({
       success: true,
       data: benhNhans,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        index: offset,
+        limit: limitValue,
         total,
-        totalPages: Math.ceil(total / limit)
+        totalPages,
+        currentPage
       }
     });
   } catch (error) {

@@ -87,11 +87,12 @@ export default function DichVuPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-raleway p-6 lg:p-8">
+      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Quản lý Dịch vụ</h1>
-          <p className="text-gray-600 mt-1">Danh sách dịch vụ và bảng giá</p>
+          <h1 className="text-4xl font-black leading-tight tracking-tight text-gray-800">Quản lý Dịch vụ</h1>
+          <p className="text-gray-600 mt-2">Danh sách dịch vụ và bảng giá</p>
         </div>
         <button
           onClick={() => {
@@ -99,71 +100,102 @@ export default function DichVuPage() {
             setEditing(null);
             setShowModal(true);
           }}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
         >
-          + Thêm dịch vụ
+          <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>add</span>
+          <span>Thêm dịch vụ</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {loading ? (
-          <div className="col-span-full text-center py-8 text-gray-500">Đang tải...</div>
-        ) : dichVus.length === 0 ? (
-          <div className="col-span-full text-center py-8 text-gray-500">Không có dữ liệu</div>
-        ) : (
-          dichVus.map((dv) => (
-            <div key={dv.id} className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-              <h3 className="text-xl font-semibold mb-2">{dv.ten_dich_vu}</h3>
-              <p className="text-gray-600 text-sm mb-4 line-clamp-2">{dv.mo_ta_ngan}</p>
-              <div className="space-y-2 mb-4">
+      {/* Services Grid */}
+      {loading ? (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-16 text-center">
+          <div className="text-gray-500">Đang tải...</div>
+        </div>
+      ) : dichVus.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-16 text-center">
+          <span className="material-symbols-outlined text-6xl text-gray-300 mb-4" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>medical_services</span>
+          <p className="text-gray-500 text-lg mb-2">Chưa có dịch vụ nào</p>
+          <p className="text-gray-400 text-sm">Bấm "Thêm dịch vụ" để bắt đầu</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {dichVus.map((dv) => (
+            <div key={dv.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">{dv.ten_dich_vu}</h3>
+                  {dv.mo_ta_ngan && (
+                    <p className="text-gray-600 text-sm line-clamp-2">{dv.mo_ta_ngan}</p>
+                  )}
+                </div>
+              </div>
+              
+              <div className="space-y-2 mb-4 pb-4 border-b border-gray-100">
                 {dv.gia_thang && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Tháng:</span>
-                    <span className="font-semibold">{parseInt(dv.gia_thang).toLocaleString('vi-VN')} đ</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Tháng:</span>
+                    <span className="font-bold text-[#4A90E2]">{parseInt(dv.gia_thang).toLocaleString('vi-VN')} đ</span>
                   </div>
                 )}
                 {dv.gia_quy && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Quý:</span>
-                    <span className="font-semibold">{parseInt(dv.gia_quy).toLocaleString('vi-VN')} đ</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Quý:</span>
+                    <span className="font-bold text-[#4A90E2]">{parseInt(dv.gia_quy).toLocaleString('vi-VN')} đ</span>
                   </div>
                 )}
                 {dv.gia_nam && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Năm:</span>
-                    <span className="font-semibold">{parseInt(dv.gia_nam).toLocaleString('vi-VN')} đ</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Năm:</span>
+                    <span className="font-bold text-[#4A90E2]">{parseInt(dv.gia_nam).toLocaleString('vi-VN')} đ</span>
                   </div>
                 )}
               </div>
-              <div className="flex space-x-2 pt-4 border-t">
+              
+              <div className="flex gap-2">
                 <button
                   onClick={() => handleEdit(dv)}
-                  className="flex-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-[#4A90E2]/10 text-[#4A90E2] rounded-lg hover:bg-[#4A90E2]/20 transition-colors text-sm font-semibold"
                 >
-                  Sửa
+                  <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>edit</span>
+                  <span>Sửa</span>
                 </button>
                 <button
                   onClick={() => handleDelete(dv.id)}
-                  className="flex-1 px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-semibold"
                 >
-                  Xóa
+                  <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>delete</span>
+                  <span>Xóa</span>
                 </button>
               </div>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-4">
-              {editing ? 'Sửa dịch vụ' : 'Thêm dịch vụ mới'}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 font-raleway p-4">
+          <div className="bg-white rounded-xl p-6 lg:p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+              <h2 className="text-2xl font-black text-gray-800">
+                {editing ? 'Sửa dịch vụ' : 'Thêm dịch vụ mới'}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowModal(false);
+                  setEditing(null);
+                  resetForm();
+                }}
+                className="flex items-center justify-center rounded-lg h-8 w-8 text-gray-600 hover:bg-gray-100 transition-colors"
+                title="Đóng"
+              >
+                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>close</span>
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Tên dịch vụ *
                 </label>
                 <input
@@ -171,67 +203,75 @@ export default function DichVuPage() {
                   required
                   value={formData.ten_dich_vu}
                   onChange={(e) => setFormData({ ...formData, ten_dich_vu: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-gray-800"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Mô tả ngắn
                 </label>
                 <textarea
                   value={formData.mo_ta_ngan}
                   onChange={(e) => setFormData({ ...formData, mo_ta_ngan: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-gray-800"
                   rows="2"
+                  placeholder="Mô tả ngắn gọn về dịch vụ..."
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Mô tả đầy đủ
                 </label>
                 <textarea
                   value={formData.mo_ta_day_du}
                   onChange={(e) => setFormData({ ...formData, mo_ta_day_du: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-gray-800"
                   rows="4"
+                  placeholder="Mô tả chi tiết về dịch vụ..."
                 />
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Giá tháng (đ)
                   </label>
                   <input
                     type="number"
+                    min="0"
                     value={formData.gia_thang}
                     onChange={(e) => setFormData({ ...formData, gia_thang: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-gray-800"
+                    placeholder="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Giá quý (đ)
                   </label>
                   <input
                     type="number"
+                    min="0"
                     value={formData.gia_quy}
                     onChange={(e) => setFormData({ ...formData, gia_quy: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-gray-800"
+                    placeholder="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Giá năm (đ)
                   </label>
                   <input
                     type="number"
+                    min="0"
                     value={formData.gia_nam}
                     onChange={(e) => setFormData({ ...formData, gia_nam: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-gray-800"
+                    placeholder="0"
                   />
                 </div>
               </div>
-              <div className="flex justify-end space-x-3 pt-4">
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                 <button
                   type="button"
                   onClick={() => {
@@ -239,15 +279,16 @@ export default function DichVuPage() {
                     setEditing(null);
                     resetForm();
                   }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-semibold"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
-                  {editing ? 'Cập nhật' : 'Thêm'}
+                  <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>save</span>
+                  <span>{editing ? 'Cập nhật' : 'Thêm'}</span>
                 </button>
               </div>
             </form>

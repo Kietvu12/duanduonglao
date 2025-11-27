@@ -117,12 +117,8 @@ export default function BenhNhanDetailPage() {
     ngay_bat_dau: new Date().toISOString().split('T')[0],
     ngay_ket_thuc: '',
     hinh_thuc_thanh_toan: 'thang',
-    thanh_tien: '',
-    da_thanh_toan: '',
     trang_thai: 'dang_su_dung'
   });
-  const [thanhToanType, setThanhToanType] = useState('chua_thanh_toan');
-  const [soTienThanhToan, setSoTienThanhToan] = useState('');
   const [isDoiDichVu, setIsDoiDichVu] = useState(false);
   const [dichVuCuId, setDichVuCuId] = useState(null);
   
@@ -690,48 +686,12 @@ export default function BenhNhanDetailPage() {
   const handleDichVuSubmit = async (e) => {
     e.preventDefault();
     try {
-      const dichVuInfo = allDichVus.find(dv => dv.id === parseInt(dichVuForm.id_dich_vu));
-      
-      // Tính thành tiền từ bảng giá nếu chưa có
-      let thanhTien = dichVuForm.thanh_tien ? parseInt(dichVuForm.thanh_tien) : 0;
-      if (!thanhTien && dichVuInfo) {
-        if (dichVuForm.hinh_thuc_thanh_toan === 'thang') {
-          thanhTien = dichVuInfo.gia_thang || 0;
-        } else if (dichVuForm.hinh_thuc_thanh_toan === 'quy') {
-          thanhTien = dichVuInfo.gia_quy || 0;
-        } else if (dichVuForm.hinh_thuc_thanh_toan === 'nam') {
-          thanhTien = dichVuInfo.gia_nam || 0;
-        }
-      }
-      
-      // Tính toán dựa trên loại thanh toán
-      let daThanhToan = 0;
-      let congNo = 0;
-      
-      if (thanhToanType === 'thanh_toan_du') {
-        daThanhToan = thanhTien;
-        congNo = 0;
-      } else if (thanhToanType === 'thanh_toan_truoc') {
-        daThanhToan = parseFloat(soTienThanhToan) || 0;
-        congNo = thanhTien - daThanhToan;
-      } else {
-        daThanhToan = dichVuForm.da_thanh_toan ? parseInt(dichVuForm.da_thanh_toan) : 0;
-        congNo = thanhTien - daThanhToan;
-      }
-
-      // Luôn cập nhật ngày thanh toán lần cuối là ngày hiện tại
-      const ngayHienTai = new Date().toISOString().split('T')[0];
-      
       const data = {
         id_benh_nhan: id,
         id_dich_vu: dichVuForm.id_dich_vu,
         ngay_bat_dau: dichVuForm.ngay_bat_dau,
         ngay_ket_thuc: dichVuForm.ngay_ket_thuc || null,
         hinh_thuc_thanh_toan: dichVuForm.hinh_thuc_thanh_toan,
-        thanh_tien: thanhTien,
-        da_thanh_toan: daThanhToan,
-        cong_no_con_lai: congNo,
-        ngay_thanh_toan_lan_cuoi: ngayHienTai,
         trang_thai: dichVuForm.trang_thai
       };
 
@@ -745,7 +705,6 @@ export default function BenhNhanDetailPage() {
         
         // Tạo dịch vụ mới
         data.ngay_bat_dau = ngayDoi;
-        data.ngay_thanh_toan_lan_cuoi = ngayDoi;
         await benhNhanDichVuAPI.create(data);
         alert('Đổi dịch vụ thành công');
       } else if (editingDichVu) {
@@ -772,22 +731,8 @@ export default function BenhNhanDetailPage() {
       ngay_bat_dau: dv.ngay_bat_dau || new Date().toISOString().split('T')[0],
       ngay_ket_thuc: dv.ngay_ket_thuc || '',
       hinh_thuc_thanh_toan: dv.hinh_thuc_thanh_toan || 'thang',
-      thanh_tien: dv.thanh_tien || '',
-      da_thanh_toan: dv.da_thanh_toan || '',
       trang_thai: dv.trang_thai || 'dang_su_dung'
     });
-    
-    // Xác định loại thanh toán
-    if (dv.cong_no_con_lai === 0 || dv.cong_no_con_lai === null) {
-      setThanhToanType('thanh_toan_du');
-      setSoTienThanhToan('');
-    } else if (dv.da_thanh_toan > 0) {
-      setThanhToanType('thanh_toan_truoc');
-      setSoTienThanhToan(dv.da_thanh_toan.toString());
-    } else {
-      setThanhToanType('chua_thanh_toan');
-      setSoTienThanhToan('');
-    }
     
     setEditingDichVu(dv);
     setIsDoiDichVu(false);
@@ -801,12 +746,8 @@ export default function BenhNhanDetailPage() {
       ngay_bat_dau: new Date().toISOString().split('T')[0],
       ngay_ket_thuc: '',
       hinh_thuc_thanh_toan: 'thang',
-      thanh_tien: '',
-      da_thanh_toan: '',
       trang_thai: 'dang_su_dung'
     });
-    setThanhToanType('chua_thanh_toan');
-    setSoTienThanhToan('');
     setEditingDichVu(null);
     setIsDoiDichVu(true);
     setDichVuCuId(dv.id);
@@ -824,20 +765,6 @@ export default function BenhNhanDetailPage() {
     }
   };
 
-  const handleThanhToanDichVu = async (dvId) => {
-    const soTien = prompt('Nhập số tiền thanh toán:');
-    if (!soTien || isNaN(soTien) || parseFloat(soTien) <= 0) {
-      alert('Số tiền không hợp lệ');
-      return;
-    }
-    try {
-      await benhNhanDichVuAPI.thanhToan(dvId, { so_tien: parseFloat(soTien) });
-      alert('Thanh toán thành công');
-      loadBenhNhanDichVus();
-    } catch (error) {
-      alert('Lỗi: ' + error.message);
-    }
-  };
 
   const resetDichVuForm = () => {
     setDichVuForm({
@@ -845,12 +772,8 @@ export default function BenhNhanDetailPage() {
       ngay_bat_dau: new Date().toISOString().split('T')[0],
       ngay_ket_thuc: '',
       hinh_thuc_thanh_toan: 'thang',
-      thanh_tien: '',
-      da_thanh_toan: '',
       trang_thai: 'dang_su_dung'
     });
-    setThanhToanType('chua_thanh_toan');
-    setSoTienThanhToan('');
     setEditingDichVu(null);
     setIsDoiDichVu(false);
     setDichVuCuId(null);
@@ -1298,131 +1221,168 @@ export default function BenhNhanDetailPage() {
   }
 
   const tabs = [
-    { id: 'thong-tin', label: 'Thông tin', icon: '📋' },
-    { id: 'chi-so', label: 'Chỉ số sinh tồn', icon: '📊' },
-    { id: 'thuoc', label: 'Đơn thuốc', icon: '💊' },
-    { id: 'dinh-duong', label: 'Dinh dưỡng', icon: '🍽️' },
-    { id: 'cong-viec', label: 'Công việc', icon: '✅' },
-    { id: 'phong', label: 'Phòng', icon: '🏠' },
-    { id: 'dich-vu', label: 'Dịch vụ', icon: '🏥' },
-    { id: 'nguoi-than', label: 'Người thân', icon: '👨‍👩‍👧‍👦' },
-    { id: 'do-dung', label: 'Vật dụng', icon: '📦' },
-    { id: 'ho-so-y-te', label: 'Hồ sơ y tế', icon: '📄' },
-    { id: 'benh-hien-tai', label: 'Bệnh hiện tại', icon: '🩺' },
-    { id: 'tam-ly', label: 'Tâm lý giao tiếp', icon: '🧠' },
-    { id: 'van-dong', label: 'Vận động phục hồi', icon: '🏃' },
+    { id: 'thong-tin', label: 'Thông tin', icon: 'info' },
+    { id: 'chi-so', label: 'Chỉ số sinh tồn', icon: 'monitor_heart' },
+    { id: 'thuoc', label: 'Đơn thuốc', icon: 'medication' },
+    { id: 'dinh-duong', label: 'Dinh dưỡng', icon: 'restaurant' },
+    { id: 'cong-viec', label: 'Công việc', icon: 'task' },
+    { id: 'phong', label: 'Phòng', icon: 'bed' },
+    { id: 'dich-vu', label: 'Dịch vụ', icon: 'medical_services' },
+    { id: 'nguoi-than', label: 'Người thân', icon: 'group' },
+    { id: 'do-dung', label: 'Vật dụng', icon: 'inventory_2' },
+    { id: 'ho-so-y-te', label: 'Hồ sơ y tế', icon: 'folder' },
+    { id: 'benh-hien-tai', label: 'Bệnh hiện tại', icon: 'medical_information' },
+    { id: 'tam-ly', label: 'Tâm lý giao tiếp', icon: 'psychology' },
+    { id: 'van-dong', label: 'Vận động phục hồi', icon: 'fitness_center' },
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <button
-            onClick={() => navigate('/admin/benh-nhan')}
-            className="text-blue-600 hover:text-blue-800 mb-2"
-          >
-            ← Quay lại
-          </button>
-          <h1 className="text-3xl font-bold text-gray-800">{benhNhan.ho_ten}</h1>
-          <div className="flex items-center gap-4 mt-1">
-            <p className="text-gray-600">Mã BN: {benhNhan.id}</p>
-            {phong ? (
-              <div className="flex items-center gap-2">
-                <span className="text-gray-600">Phòng: {phong.khu}-{phong.phong}-{phong.giuong}</span>
+    <div className="w-full max-w-[100vw] overflow-x-hidden box-border font-raleway" style={{ width: '100%', maxWidth: '100vw', boxSizing: 'border-box' }}>
+      <div className="space-y-6 p-6 lg:p-8 max-w-full" style={{ maxWidth: '100%', boxSizing: 'border-box' }}>
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <button
+              onClick={() => navigate('/admin/benh-nhan')}
+              className="flex items-center gap-2 text-[#4A90E2] hover:text-[#4A90E2]/80 mb-3 font-medium transition-colors"
+            >
+              <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>arrow_back</span>
+              <span>Quay lại</span>
+            </button>
+            <div className="flex items-center gap-4 mb-3">
+              <div className="w-16 h-16 bg-[#4A90E2] rounded-full flex items-center justify-center text-white font-bold text-2xl">
+                {benhNhan.ho_ten?.charAt(0)?.toUpperCase()}
+              </div>
+              <div>
+                <h1 className="text-4xl font-black leading-tight tracking-tight text-gray-800">{benhNhan.ho_ten}</h1>
+                <p className="text-gray-600 text-sm mt-1">Mã BN: {benhNhan.id}</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              {phong ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-[#4A90E2] rounded-lg font-medium text-sm">
+                    <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>bed</span>
+                    Phòng: {phong.khu}-{phong.phong}-{phong.giuong}
+                  </span>
+                  <button
+                    onClick={handleOpenPhongModal}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-[#4A90E2]/10 text-[#4A90E2] rounded-lg hover:bg-[#4A90E2]/20 transition-colors text-sm font-semibold"
+                  >
+                    <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>swap_horiz</span>
+                    <span>Đổi phòng</span>
+                  </button>
+                  <button
+                    onClick={handleXoaPhong}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-semibold"
+                  >
+                    <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>delete</span>
+                    <span>Xóa phòng</span>
+                  </button>
+                </div>
+              ) : (
                 <button
                   onClick={handleOpenPhongModal}
-                  className="text-blue-600 hover:text-blue-800 text-sm px-2 py-1 bg-blue-50 rounded"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
-                  Đổi phòng
+                  <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>add</span>
+                  <span>Phân phòng</span>
                 </button>
-                <button
-                  onClick={handleXoaPhong}
-                  className="text-red-600 hover:text-red-800 text-sm px-2 py-1 bg-red-50 rounded"
-                >
-                  Xóa phòng
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={handleOpenPhongModal}
-                className="text-blue-600 hover:text-blue-800 text-sm"
-              >
-                + Phân phòng
-              </button>
-            )}
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="border-b border-gray-200 overflow-hidden">
-          <nav className="flex -mb-px overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100" style={{ scrollbarWidth: 'thin' }}>
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
-                  activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <span className="mr-2">{tab.icon}</span>
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        </div>
+        {/* Tabs */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden w-full" style={{ maxWidth: '100%', boxSizing: 'border-box' }}>
+          <div className="border-b border-gray-200 w-full overflow-hidden bg-gray-50" style={{ maxWidth: '100%', boxSizing: 'border-box' }}>
+            <nav 
+              className="flex -mb-px overflow-x-auto scroll-smooth" 
+              style={{ 
+                scrollbarWidth: 'thin', 
+                WebkitOverflowScrolling: 'touch',
+                width: '100%',
+                maxWidth: '100%',
+                boxSizing: 'border-box',
+                minWidth: 0
+              }}
+            >
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-4 sm:px-6 md:px-8 py-4 text-sm font-semibold border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${
+                    activeTab === tab.id
+                      ? 'border-[#4A90E2] text-[#4A90E2] bg-[#4A90E2]/5'
+                      : 'border-transparent text-gray-600 hover:text-[#4A90E2] hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>
+                    {tab.icon}
+                  </span>
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="sm:hidden">{tab.label.length > 6 ? tab.label.substring(0, 6) + '...' : tab.label}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
 
-        <div className="p-6">
+        <div className="p-6 lg:p-8">
           {/* Tab: Thông tin */}
           {activeTab === 'thong-tin' && (
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Thông tin cá nhân</h3>
-                <dl className="space-y-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                <h3 className="text-lg font-bold text-gray-800 mb-5 pb-3 border-b border-gray-200">Thông tin cá nhân</h3>
+                <dl className="space-y-4">
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Họ tên</dt>
-                    <dd className="text-gray-900">{benhNhan.ho_ten}</dd>
+                    <dt className="text-sm font-medium text-gray-600 mb-1">Họ tên</dt>
+                    <dd className="text-gray-900 font-semibold">{benhNhan.ho_ten}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Ngày sinh</dt>
+                    <dt className="text-sm font-medium text-gray-600 mb-1">Ngày sinh</dt>
                     <dd className="text-gray-900">
                       {benhNhan.ngay_sinh ? new Date(benhNhan.ngay_sinh).toLocaleDateString('vi-VN') : '-'}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Giới tính</dt>
-                    <dd className="text-gray-900 capitalize">{benhNhan.gioi_tinh}</dd>
+                    <dt className="text-sm font-medium text-gray-600 mb-1">Giới tính</dt>
+                    <dd className="text-gray-900">
+                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700 capitalize">
+                        {benhNhan.gioi_tinh}
+                      </span>
+                    </dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">CCCD</dt>
+                    <dt className="text-sm font-medium text-gray-600 mb-1">CCCD</dt>
                     <dd className="text-gray-900">{benhNhan.cccd || '-'}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Địa chỉ</dt>
+                    <dt className="text-sm font-medium text-gray-600 mb-1">Địa chỉ</dt>
                     <dd className="text-gray-900">{benhNhan.dia_chi || '-'}</dd>
                   </div>
                 </dl>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Thông tin y tế</h3>
-                <dl className="space-y-2">
+              <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                <h3 className="text-lg font-bold text-gray-800 mb-5 pb-3 border-b border-gray-200">Thông tin y tế</h3>
+                <dl className="space-y-4">
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Nhóm máu</dt>
+                    <dt className="text-sm font-medium text-gray-600 mb-1">Nhóm máu</dt>
                     <dd className="text-gray-900">{benhNhan.nhom_mau || '-'}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">BHYT</dt>
+                    <dt className="text-sm font-medium text-gray-600 mb-1">BHYT</dt>
                     <dd className="text-gray-900">{benhNhan.bhyt || '-'}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Khả năng sinh hoạt</dt>
-                    <dd className="text-gray-900 capitalize">{benhNhan.kha_nang_sinh_hoat?.replace('_', ' ')}</dd>
+                    <dt className="text-sm font-medium text-gray-600 mb-1">Khả năng sinh hoạt</dt>
+                    <dd className="text-gray-900">
+                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 capitalize">
+                        {benhNhan.kha_nang_sinh_hoat?.replace('_', ' ')}
+                      </span>
+                    </dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Ngày nhập viện</dt>
+                    <dt className="text-sm font-medium text-gray-600 mb-1">Ngày nhập viện</dt>
                     <dd className="text-gray-900">
                       {benhNhan.ngay_nhap_vien ? new Date(benhNhan.ngay_nhap_vien).toLocaleDateString('vi-VN') : '-'}
                     </dd>
@@ -1435,52 +1395,59 @@ export default function BenhNhanDetailPage() {
           {/* Tab: Chỉ số sinh tồn */}
           {activeTab === 'chi-so' && (
             <div>
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Chỉ số sinh tồn</h3>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-gray-800">Chỉ số sinh tồn</h3>
                 <button
                   onClick={() => {
                     resetChiSoForm();
                     setShowChiSoModal(true);
                   }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
-                  + Thêm chỉ số
+                  <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>add</span>
+                  <span>Thêm chỉ số</span>
                 </button>
               </div>
               {chiSoSinhTon.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Chưa có dữ liệu chỉ số sinh tồn</p>
+                <div className="bg-gray-50 rounded-xl p-12 text-center border border-gray-200">
+                  <span className="material-symbols-outlined text-6xl text-gray-300 mb-4" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>monitor_heart</span>
+                  <p className="text-gray-500 text-lg mb-2">Chưa có dữ liệu chỉ số sinh tồn</p>
+                  <p className="text-gray-400 text-sm">Bấm "Thêm chỉ số" để bắt đầu</p>
+                </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thời gian</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Huyết áp</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nhịp tim</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SpO2</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nhiệt độ</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nhịp thở</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ghi chú</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {chiSoSinhTon.map((cs) => (
-                        <tr key={cs.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 whitespace-nowrap text-sm">
-                            {new Date(cs.thoi_gian).toLocaleString('vi-VN')}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm">
-                            {cs.huyet_ap_tam_thu}/{cs.huyet_ap_tam_truong} mmHg
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm">{cs.nhip_tim} bpm</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm">{cs.spo2}%</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm">{cs.nhiet_do}°C</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm">{cs.nhip_tho || '-'} lần/phút</td>
-                          <td className="px-4 py-3 text-sm">{cs.ghi_chu || '-'}</td>
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Thời gian</th>
+                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Huyết áp</th>
+                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Nhịp tim</th>
+                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">SpO2</th>
+                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Nhiệt độ</th>
+                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Nhịp thở</th>
+                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Ghi chú</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {chiSoSinhTon.map((cs) => (
+                          <tr key={cs.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {new Date(cs.thoi_gian).toLocaleString('vi-VN')}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                              {cs.huyet_ap_tam_thu}/{cs.huyet_ap_tam_truong} mmHg
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{cs.nhip_tim} bpm</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{cs.spo2}%</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{cs.nhiet_do}°C</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{cs.nhip_tho || '-'} lần/phút</td>
+                            <td className="px-6 py-4 text-sm text-gray-600">{cs.ghi_chu || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </div>
@@ -1489,41 +1456,47 @@ export default function BenhNhanDetailPage() {
           {/* Tab: Đơn thuốc */}
           {activeTab === 'thuoc' && (
             <div>
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Đơn thuốc</h3>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-gray-800">Đơn thuốc</h3>
                 <button
                   onClick={() => {
                     resetThuocForm();
                     setShowThuocModal(true);
                   }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
-                  + Thêm đơn thuốc
+                  <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>add</span>
+                  <span>Thêm đơn thuốc</span>
                 </button>
               </div>
               {donThuocs.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Chưa có đơn thuốc</p>
+                <div className="bg-gray-50 rounded-xl p-12 text-center border border-gray-200">
+                  <span className="material-symbols-outlined text-6xl text-gray-300 mb-4" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>medication</span>
+                  <p className="text-gray-500 text-lg mb-2">Chưa có đơn thuốc</p>
+                  <p className="text-gray-400 text-sm">Bấm "Thêm đơn thuốc" để bắt đầu</p>
+                </div>
               ) : (
                 <div className="space-y-4">
                   {donThuocs.map((don) => (
-                    <div key={don.id} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex justify-between items-start mb-2">
+                    <div key={don.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start mb-3">
                         <div>
-                          <p className="font-medium">Ngày kê: {new Date(don.ngay_ke).toLocaleDateString('vi-VN')}</p>
+                          <p className="font-bold text-gray-900">Ngày kê: {new Date(don.ngay_ke).toLocaleDateString('vi-VN')}</p>
                           {don.mo_ta && <p className="text-sm text-gray-600 mt-1">{don.mo_ta}</p>}
                         </div>
                         <button
                           onClick={() => handleDeleteDonThuoc(don.id)}
-                          className="text-red-600 hover:text-red-900 text-sm"
+                          className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-semibold"
                         >
-                          Xóa
+                          <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>delete</span>
+                          <span>Xóa</span>
                         </button>
                       </div>
                       {don.thuoc && don.thuoc.length > 0 && (
-                        <div className="mt-3 space-y-2">
+                        <div className="mt-4 space-y-2">
                           {don.thuoc.map((thuoc, idx) => (
-                            <div key={idx} className="bg-gray-50 p-2 rounded text-sm">
-                              <span className="font-medium">{thuoc.ten_thuoc}</span> - {thuoc.lieu_luong} - {thuoc.thoi_diem_uong}
+                            <div key={idx} className="bg-gray-50 p-3 rounded-lg text-sm border border-gray-200">
+                              <span className="font-semibold text-gray-900">{thuoc.ten_thuoc}</span> - <span className="text-gray-700">{thuoc.lieu_luong}</span> - <span className="text-gray-700">{thuoc.thoi_diem_uong}</span>
                               {thuoc.ghi_chu && <span className="text-gray-600 ml-2">({thuoc.ghi_chu})</span>}
                             </div>
                           ))}
@@ -1539,47 +1512,58 @@ export default function BenhNhanDetailPage() {
           {/* Tab: Dinh dưỡng */}
           {activeTab === 'dinh-duong' && (
             <div>
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Thực đơn</h3>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-gray-800">Thực đơn</h3>
                 <button
                   onClick={() => {
                     resetThucDonForm();
                     setShowThucDonModal(true);
                   }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
-                  + Thêm thực đơn
+                  <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>add</span>
+                  <span>Thêm thực đơn</span>
                 </button>
               </div>
               {thucDons.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Chưa có thực đơn</p>
+                <div className="bg-gray-50 rounded-xl p-12 text-center border border-gray-200">
+                  <span className="material-symbols-outlined text-6xl text-gray-300 mb-4" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>restaurant</span>
+                  <p className="text-gray-500 text-lg mb-2">Chưa có thực đơn</p>
+                  <p className="text-gray-400 text-sm">Bấm "Thêm thực đơn" để bắt đầu</p>
+                </div>
               ) : (
                 <div className="space-y-4">
                   {thucDons.map((td) => (
-                    <div key={td.id} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <p className="font-medium">
-                          Ngày: {new Date(td.ngay).toLocaleDateString('vi-VN')} - Tổng calo: {td.tong_calo || 0} kcal
-                        </p>
+                    <div key={td.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <p className="font-bold text-gray-900">
+                            Ngày: {new Date(td.ngay).toLocaleDateString('vi-VN')}
+                          </p>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Tổng calo: <span className="font-semibold text-[#4A90E2]">{td.tong_calo || 0} kcal</span>
+                          </p>
+                        </div>
                         <button
                           onClick={() => handleDeleteThucDon(td.id)}
-                          className="text-red-600 hover:text-red-900 text-sm"
+                          className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-semibold"
                         >
-                          Xóa
+                          <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>delete</span>
+                          <span>Xóa</span>
                         </button>
                       </div>
-                      <div className="grid grid-cols-3 gap-4 mt-3">
-                        <div>
-                          <p className="text-sm font-medium text-gray-600">Bữa sáng</p>
-                          <p className="text-sm">{td.bua_sang || '-'}</p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                          <p className="text-sm font-semibold text-gray-700 mb-2">Bữa sáng</p>
+                          <p className="text-sm text-gray-900">{td.bua_sang || '-'}</p>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-600">Bữa trưa</p>
-                          <p className="text-sm">{td.bua_trua || '-'}</p>
+                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                          <p className="text-sm font-semibold text-gray-700 mb-2">Bữa trưa</p>
+                          <p className="text-sm text-gray-900">{td.bua_trua || '-'}</p>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-600">Bữa tối</p>
-                          <p className="text-sm">{td.bua_toi || '-'}</p>
+                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                          <p className="text-sm font-semibold text-gray-700 mb-2">Bữa tối</p>
+                          <p className="text-sm text-gray-900">{td.bua_toi || '-'}</p>
                         </div>
                       </div>
                     </div>
@@ -1593,41 +1577,50 @@ export default function BenhNhanDetailPage() {
           {activeTab === 'cong-viec' && (
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Công việc chăm sóc</h3>
+                <h3 className="text-xl font-bold text-gray-800">Công việc chăm sóc</h3>
                 <button
                   onClick={() => {
                     resetCongViecForm();
                     setShowCongViecModal(true);
                   }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
                   + Thêm công việc
                 </button>
               </div>
               {congViecs.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Chưa có công việc</p>
+                <div className="bg-gray-50 rounded-xl p-12 text-center border border-gray-200">
+                  <span className="material-symbols-outlined text-6xl text-gray-300 mb-4" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>task</span>
+                  <p className="text-gray-500 text-lg mb-2">Chưa có công việc</p>
+                  <p className="text-gray-400 text-sm">Bấm "Thêm công việc" để bắt đầu</p>
+                </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {congViecs.map((cv) => (
-                    <div key={cv.id} className="border border-gray-200 rounded-lg p-4">
+                    <div key={cv.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <p className="font-medium">{cv.ten_cong_viec}</p>
-                          {cv.mo_ta && <p className="text-sm text-gray-600 mt-1">{cv.mo_ta}</p>}
-                          <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                            <span>Điều dưỡng: {cv.ten_dieu_duong || '-'}</span>
-                            <span>Thời gian: {cv.thoi_gian_du_kien ? new Date(cv.thoi_gian_du_kien).toLocaleString('vi-VN') : '-'}</span>
+                          <p className="font-bold text-gray-900 text-lg">{cv.ten_cong_viec}</p>
+                          {cv.mo_ta && <p className="text-sm text-gray-600 mt-2">{cv.mo_ta}</p>}
+                          <div className="flex items-center gap-4 mt-3 text-sm text-gray-600">
+                            <span className="flex items-center gap-1">
+                              <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>person</span>
+                              Điều dưỡng: {cv.ten_dieu_duong || '-'}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>schedule</span>
+                              {cv.thoi_gian_du_kien ? new Date(cv.thoi_gian_du_kien).toLocaleString('vi-VN') : '-'}
+                            </span>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <select
                             value={cv.trang_thai || 'chua_lam'}
                             onChange={(e) => {
-                              const phanCongId = cv.id; // This should be the phan_cong_cong_viec id
-                              // Note: Need to get the correct ID for update
+                              const phanCongId = cv.id;
                               alert('Chức năng cập nhật trạng thái sẽ được cải thiện');
                             }}
-                            className="px-2 py-1 border border-gray-300 rounded text-sm"
+                            className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50"
                           >
                             <option value="chua_lam">Chưa làm</option>
                             <option value="dang_lam">Đang làm</option>
@@ -1646,30 +1639,35 @@ export default function BenhNhanDetailPage() {
           {activeTab === 'phong' && (
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Lịch sử phòng</h3>
+                <h3 className="text-xl font-bold text-gray-800">Lịch sử phòng</h3>
                 <button
                   onClick={handleOpenPhongModal}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
                   + Phân phòng mới
                 </button>
               </div>
               {allPhongs.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Chưa có phòng nào được phân bổ</p>
+                <div className="bg-gray-50 rounded-xl p-12 text-center border border-gray-200">
+                  <span className="material-symbols-outlined text-6xl text-gray-300 mb-4" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>bed</span>
+                  <p className="text-gray-500 text-lg mb-2">Chưa có phòng nào được phân bổ</p>
+                  <p className="text-gray-400 text-sm">Bấm "Phân phòng mới" để bắt đầu</p>
+                </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khu</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên phòng</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số phòng</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày bắt đầu ở</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày kết thúc ở</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thao tác</th>
-                      </tr>
-                    </thead>
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Khu</th>
+                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Tên phòng</th>
+                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Số phòng</th>
+                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Ngày bắt đầu ở</th>
+                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Ngày kết thúc ở</th>
+                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Trạng thái</th>
+                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Thao tác</th>
+                        </tr>
+                      </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {allPhongs.map((p) => {
                         // Xác định phòng đang ở: không có ngày kết thúc hoặc ngày kết thúc > hôm nay (không bao gồm hôm nay)
@@ -1683,26 +1681,26 @@ export default function BenhNhanDetailPage() {
                         const isCurrent = !p.ngay_ket_thuc_o || (ngayKetThuc && ngayKetThuc > today);
                         
                         return (
-                          <tr key={p.id} className={isCurrent ? 'bg-blue-50' : 'hover:bg-gray-50'}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          <tr key={p.id} className={isCurrent ? 'bg-[#4A90E2]/5' : 'hover:bg-gray-50 transition-colors'}>
+                            <td className="px-6 py-5 whitespace-nowrap text-sm font-semibold text-gray-900">
                               {p.khu || p.ten_khu_phan_khu || '-'}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-900">
                               {p.ten_phong || p.phong || '-'}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-900">
                               {p.so_phong || p.so_phong_thuc_te || '-'}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-900">
                               {p.ngay_bat_dau_o ? new Date(p.ngay_bat_dau_o).toLocaleDateString('vi-VN') : '-'}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-900">
                               {p.ngay_ket_thuc_o ? new Date(p.ngay_ket_thuc_o).toLocaleDateString('vi-VN') : (
-                                <span className="text-green-600 font-medium">Đang ở</span>
+                                <span className="text-green-600 font-semibold">Đang ở</span>
                               )}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`px-2 py-1 text-xs rounded-full ${
+                            <td className="px-6 py-5 whitespace-nowrap">
+                              <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
                                 isCurrent 
                                   ? 'bg-green-100 text-green-800' 
                                   : 'bg-gray-100 text-gray-800'
@@ -1710,14 +1708,15 @@ export default function BenhNhanDetailPage() {
                                 {isCurrent ? 'Đang ở' : 'Đã kết thúc'}
                               </span>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <td className="px-6 py-5 whitespace-nowrap">
                               {isCurrent && (
                                 <div className="flex gap-2">
                                   <button
                                     onClick={handleOpenPhongModal}
-                                    className="text-blue-600 hover:text-blue-900 text-xs px-2 py-1 border border-blue-300 rounded hover:bg-blue-50"
+                                    className="flex items-center gap-1 px-3 py-1.5 bg-[#4A90E2]/10 text-[#4A90E2] rounded-lg hover:bg-[#4A90E2]/20 transition-colors text-xs font-semibold"
                                   >
-                                    Đổi phòng
+                                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>swap_horiz</span>
+                                    <span>Đổi</span>
                                   </button>
                                   <button
                                     onClick={async () => {
@@ -1733,9 +1732,10 @@ export default function BenhNhanDetailPage() {
                                         alert('Lỗi: ' + error.message);
                                       }
                                     }}
-                                    className="text-orange-600 hover:text-orange-900 text-xs px-2 py-1 border border-orange-300 rounded hover:bg-orange-50"
+                                    className="flex items-center gap-1 px-3 py-1.5 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 transition-colors text-xs font-semibold"
                                   >
-                                    Kết thúc
+                                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>close</span>
+                                    <span>Kết thúc</span>
                                   </button>
                                 </div>
                               )}
@@ -1745,6 +1745,7 @@ export default function BenhNhanDetailPage() {
                       })}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               )}
             </div>
@@ -1754,50 +1755,73 @@ export default function BenhNhanDetailPage() {
           {activeTab === 'nguoi-than' && (
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Người thân</h3>
+                <h3 className="text-xl font-bold text-gray-800">Người thân</h3>
                 <button
                   onClick={() => {
                     resetNguoiThanForm();
                     setShowNguoiThanModal(true);
                   }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
                   + Thêm người thân
                 </button>
               </div>
               {nguoiThans.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Chưa có người thân</p>
+                <div className="bg-gray-50 rounded-xl p-12 text-center border border-gray-200">
+                  <span className="material-symbols-outlined text-6xl text-gray-300 mb-4" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>group</span>
+                  <p className="text-gray-500 text-lg mb-2">Chưa có người thân</p>
+                  <p className="text-gray-400 text-sm">Bấm "Thêm người thân" để bắt đầu</p>
+                </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {nguoiThans.map((nt) => (
-                    <div key={nt.id} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <p className="font-medium">{nt.ho_ten}</p>
-                          {nt.la_nguoi_lien_he_chinh && (
-                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded mt-1 inline-block">
-                              Liên hệ chính
-                            </span>
-                          )}
+                    <div key={nt.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-10 h-10 bg-[#4A90E2] rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                              {nt.ho_ten?.charAt(0)?.toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-900">{nt.ho_ten}</p>
+                              {nt.la_nguoi_lien_he_chinh && (
+                                <span className="text-xs bg-[#4A90E2]/20 text-[#4A90E2] px-2 py-0.5 rounded-full font-medium mt-1 inline-block">
+                                  Liên hệ chính
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleEditNguoiThan(nt)}
-                            className="text-blue-600 hover:text-blue-900 text-sm"
+                            className="flex items-center gap-1 px-2 py-1 bg-[#4A90E2]/10 text-[#4A90E2] rounded-lg hover:bg-[#4A90E2]/20 transition-colors text-xs"
+                            title="Sửa"
                           >
-                            Sửa
+                            <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>edit</span>
                           </button>
                           <button
                             onClick={() => handleDeleteNguoiThan(nt.id)}
-                            className="text-red-600 hover:text-red-900 text-sm"
+                            className="flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-xs"
+                            title="Xóa"
                           >
-                            Xóa
+                            <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>delete</span>
                           </button>
                         </div>
                       </div>
-                      <p className="text-sm text-gray-600">Quan hệ: {nt.moi_quan_he || '-'}</p>
-                      <p className="text-sm text-gray-600">SĐT: {nt.so_dien_thoai || '-'}</p>
-                      {nt.email && <p className="text-sm text-gray-600">Email: {nt.email}</p>}
+                      <div className="space-y-2 text-sm">
+                        <p className="text-gray-600">
+                          <span className="font-medium">Quan hệ:</span> {nt.moi_quan_he || '-'}
+                        </p>
+                        <p className="text-gray-600">
+                          <span className="font-medium">SĐT:</span> {nt.so_dien_thoai || '-'}
+                        </p>
+                        {nt.email && (
+                          <p className="text-gray-600">
+                            <span className="font-medium">Email:</span> {nt.email}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1809,72 +1833,59 @@ export default function BenhNhanDetailPage() {
           {activeTab === 'dich-vu' && (
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Dịch vụ</h3>
+                <h3 className="text-xl font-bold text-gray-800">Dịch vụ</h3>
                 <button
                   onClick={() => {
                     resetDichVuForm();
                     setShowDichVuModal(true);
                   }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
                   + Thêm dịch vụ
                 </button>
               </div>
               {benhNhanDichVus.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Chưa có dịch vụ nào</p>
+                <div className="bg-gray-50 rounded-xl p-12 text-center border border-gray-200">
+                  <span className="material-symbols-outlined text-6xl text-gray-300 mb-4" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>medical_services</span>
+                  <p className="text-gray-500 text-lg mb-2">Chưa có dịch vụ nào</p>
+                  <p className="text-gray-400 text-sm">Bấm "Thêm dịch vụ" để bắt đầu</p>
+                </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dịch vụ</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày bắt đầu</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày kết thúc</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hình thức</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thành tiền</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Đã thanh toán</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Công nợ</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày thanh toán lần cuối</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thao tác</th>
-                      </tr>
-                    </thead>
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Dịch vụ</th>
+                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Ngày bắt đầu</th>
+                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Ngày kết thúc</th>
+                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Hình thức</th>
+                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Trạng thái</th>
+                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Thao tác</th>
+                        </tr>
+                      </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {benhNhanDichVus.map((dv) => (
-                        <tr key={dv.id}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{dv.ten_dich_vu}</div>
+                        <tr key={dv.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-5 whitespace-nowrap">
+                            <div className="text-sm font-semibold text-gray-900">{dv.ten_dich_vu}</div>
                             {dv.mo_ta_ngan && (
-                              <div className="text-xs text-gray-500">{dv.mo_ta_ngan}</div>
+                              <div className="text-xs text-gray-500 mt-1">{dv.mo_ta_ngan}</div>
                             )}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-900">
                             {dv.ngay_bat_dau ? new Date(dv.ngay_bat_dau).toLocaleDateString('vi-VN') : '-'}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-900">
                             {dv.ngay_ket_thuc ? new Date(dv.ngay_ket_thuc).toLocaleDateString('vi-VN') : '-'}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">
-                            {dv.hinh_thuc_thanh_toan?.replace('_', ' ')}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {dv.thanh_tien ? new Intl.NumberFormat('vi-VN').format(dv.thanh_tien) + ' đ' : '0 đ'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {dv.da_thanh_toan ? new Intl.NumberFormat('vi-VN').format(dv.da_thanh_toan) + ' đ' : '0 đ'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`text-sm font-medium ${
-                              (dv.cong_no_con_lai || 0) > 0 ? 'text-red-600' : 'text-green-600'
-                            }`}>
-                              {new Intl.NumberFormat('vi-VN').format(dv.cong_no_con_lai || 0)} đ
+                          <td className="px-6 py-5 whitespace-nowrap">
+                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700 capitalize">
+                              {dv.hinh_thuc_thanh_toan?.replace('_', ' ')}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {dv.ngay_thanh_toan_lan_cuoi ? new Date(dv.ngay_thanh_toan_lan_cuoi).toLocaleDateString('vi-VN') : '-'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 py-1 text-xs rounded-full ${
+                          <td className="px-6 py-5 whitespace-nowrap">
+                            <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
                               dv.trang_thai === 'dang_su_dung' ? 'bg-green-100 text-green-800' :
                               dv.trang_thai === 'tam_dung' ? 'bg-yellow-100 text-yellow-800' :
                               'bg-gray-100 text-gray-800'
@@ -1883,32 +1894,25 @@ export default function BenhNhanDetailPage() {
                                dv.trang_thai === 'tam_dung' ? 'Tạm dừng' : 'Kết thúc'}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <td className="px-6 py-5 whitespace-nowrap">
                             <div className="flex gap-2 flex-wrap">
                               {dv.trang_thai === 'dang_su_dung' && (
                                 <button
                                   onClick={() => handleDoiDichVu(dv)}
-                                  className="text-purple-600 hover:text-purple-900 text-xs px-2 py-1 border border-purple-300 rounded hover:bg-purple-50"
-                                  title="Đổi dịch vụ (sẽ kết thúc dịch vụ cũ và tạo dịch vụ mới)"
+                                  className="flex items-center gap-1 px-2 py-1 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition-colors text-xs font-semibold"
+                                  title="Đổi dịch vụ"
                                 >
-                                  Đổi
-                                </button>
-                              )}
-                              {(dv.cong_no_con_lai || 0) > 0 && (
-                                <button
-                                  onClick={() => handleThanhToanDichVu(dv.id)}
-                                  className="text-green-600 hover:text-green-900 text-xs px-2 py-1 border border-green-300 rounded hover:bg-green-50"
-                                  title="Thanh toán"
-                                >
-                                  Thanh toán
+                                  <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>swap_horiz</span>
+                                  <span>Đổi</span>
                                 </button>
                               )}
                               <button
                                 onClick={() => handleDeleteDichVu(dv.id)}
-                                className="text-red-600 hover:text-red-900 text-xs px-2 py-1 border border-red-300 rounded hover:bg-red-50"
+                                className="flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-xs font-semibold"
                                 title="Xóa"
                               >
-                                Xóa
+                                <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>delete</span>
+                                <span>Xóa</span>
                               </button>
                             </div>
                           </td>
@@ -1916,6 +1920,7 @@ export default function BenhNhanDetailPage() {
                       ))}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               )}
             </div>
@@ -1925,54 +1930,60 @@ export default function BenhNhanDetailPage() {
           {activeTab === 'do-dung' && (
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Vật dụng cá nhân</h3>
+                <h3 className="text-xl font-bold text-gray-800">Vật dụng cá nhân</h3>
                 <button
                   onClick={() => {
                     resetDoDungForm();
                     setShowDoDungModal(true);
                   }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
                   + Thêm vật dụng
                 </button>
               </div>
               {doDungs.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Chưa có vật dụng</p>
+                <div className="bg-gray-50 rounded-xl p-12 text-center border border-gray-200">
+                  <span className="material-symbols-outlined text-6xl text-gray-300 mb-4" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>inventory_2</span>
+                  <p className="text-gray-500 text-lg mb-2">Chưa có vật dụng</p>
+                  <p className="text-gray-400 text-sm">Bấm "Thêm vật dụng" để bắt đầu</p>
+                </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {doDungs.map((dd) => (
-                    <div key={dd.id} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <p className="font-medium">{dd.ten_vat_dung}</p>
-                          <p className="text-sm text-gray-600">Số lượng: {dd.so_luong}</p>
+                    <div key={dd.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1">
+                          <p className="font-bold text-gray-900">{dd.ten_vat_dung}</p>
+                          <p className="text-sm text-gray-600 mt-1">Số lượng: <span className="font-semibold">{dd.so_luong}</span></p>
                         </div>
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleEditDoDung(dd)}
-                            className="text-blue-600 hover:text-blue-900 text-sm"
+                            className="flex items-center gap-1 px-2 py-1 bg-[#4A90E2]/10 text-[#4A90E2] rounded-lg hover:bg-[#4A90E2]/20 transition-colors text-xs"
+                            title="Sửa"
                           >
-                            Sửa
+                            <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>edit</span>
                           </button>
                           <button
                             onClick={() => handleDeleteDoDung(dd.id)}
-                            className="text-red-600 hover:text-red-900 text-sm"
+                            className="flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-xs"
+                            title="Xóa"
                           >
-                            Xóa
+                            <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>delete</span>
                           </button>
                         </div>
                       </div>
-                      <p className="text-sm">
-                        Tình trạng: 
-                        <span className={`ml-1 px-2 py-1 text-xs rounded ${
+                      <div className="mt-3">
+                        <p className="text-sm text-gray-600 mb-1">Tình trạng:</p>
+                        <span className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${
                           dd.tinh_trang === 'tot' ? 'bg-green-100 text-green-800' :
                           dd.tinh_trang === 'hu_hong' ? 'bg-yellow-100 text-yellow-800' :
                           'bg-red-100 text-red-800'
                         }`}>
                           {dd.tinh_trang === 'tot' ? 'Tốt' : dd.tinh_trang === 'hu_hong' ? 'Hư hỏng' : 'Mất'}
                         </span>
-                      </p>
-                      {dd.ghi_chu && <p className="text-sm text-gray-600 mt-1">{dd.ghi_chu}</p>}
+                      </div>
+                      {dd.ghi_chu && <p className="text-sm text-gray-600 mt-3">{dd.ghi_chu}</p>}
                     </div>
                   ))}
                 </div>
@@ -1984,7 +1995,7 @@ export default function BenhNhanDetailPage() {
           {activeTab === 'ho-so-y-te' && (
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Hồ sơ y tế</h3>
+                <h3 className="text-xl font-bold text-gray-800">Hồ sơ y tế</h3>
                 <button
                   onClick={() => {
                     if (hoSoYTe) {
@@ -1999,7 +2010,7 @@ export default function BenhNhanDetailPage() {
                     }
                     setShowHoSoYTeModal(true);
                   }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
                   {hoSoYTe ? 'Sửa hồ sơ y tế' : '+ Tạo hồ sơ y tế'}
                 </button>
@@ -2034,7 +2045,11 @@ export default function BenhNhanDetailPage() {
                   </div>
                 </div>
               ) : (
-                <p className="text-gray-500 text-center py-8">Chưa có hồ sơ y tế</p>
+                <div className="bg-gray-50 rounded-xl p-12 text-center border border-gray-200">
+                  <span className="material-symbols-outlined text-6xl text-gray-300 mb-4" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>folder</span>
+                  <p className="text-gray-500 text-lg mb-2">Chưa có hồ sơ y tế</p>
+                  <p className="text-gray-400 text-sm">Bấm "Tạo hồ sơ y tế" để bắt đầu</p>
+                </div>
               )}
             </div>
           )}
@@ -2043,19 +2058,23 @@ export default function BenhNhanDetailPage() {
           {activeTab === 'benh-hien-tai' && (
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Bệnh hiện tại</h3>
+                <h3 className="text-xl font-bold text-gray-800">Bệnh hiện tại</h3>
                 <button
                   onClick={() => {
                     resetBenhHienTaiForm();
                     setShowBenhHienTaiModal(true);
                   }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
                   + Thêm bệnh hiện tại
                 </button>
               </div>
               {benhHienTai.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Chưa có bệnh hiện tại</p>
+                <div className="bg-gray-50 rounded-xl p-12 text-center border border-gray-200">
+                  <span className="material-symbols-outlined text-6xl text-gray-300 mb-4" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>medical_services</span>
+                  <p className="text-gray-500 text-lg mb-2">Chưa có bệnh hiện tại</p>
+                  <p className="text-gray-400 text-sm">Bấm "Thêm bệnh hiện tại" để bắt đầu</p>
+                </div>
               ) : (
                 <div className="space-y-4">
                   {benhHienTai.map((bh) => (
@@ -2107,19 +2126,23 @@ export default function BenhNhanDetailPage() {
           {activeTab === 'tam-ly' && (
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Tâm lý giao tiếp</h3>
+                <h3 className="text-xl font-bold text-gray-800">Tâm lý giao tiếp</h3>
                 <button
                   onClick={() => {
                     resetTamLyGiaoTiepForm();
                     setShowTamLyGiaoTiepModal(true);
                   }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
                   + Thêm ghi chú tâm lý
                 </button>
               </div>
               {tamLyGiaoTiep.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Chưa có ghi chú tâm lý</p>
+                <div className="bg-gray-50 rounded-xl p-12 text-center border border-gray-200">
+                  <span className="material-symbols-outlined text-6xl text-gray-300 mb-4" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>psychology</span>
+                  <p className="text-gray-500 text-lg mb-2">Chưa có ghi chú tâm lý</p>
+                  <p className="text-gray-400 text-sm">Bấm "Thêm ghi chú tâm lý" để bắt đầu</p>
+                </div>
               ) : (
                 <div className="space-y-4">
                   {tamLyGiaoTiep.map((tlg) => (
@@ -2179,19 +2202,23 @@ export default function BenhNhanDetailPage() {
           {activeTab === 'van-dong' && (
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Vận động phục hồi</h3>
+                <h3 className="text-xl font-bold text-gray-800">Vận động phục hồi</h3>
                 <button
                   onClick={() => {
                     resetVanDongPhucHoiForm();
                     setShowVanDongPhucHoiModal(true);
                   }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
                   + Thêm vận động phục hồi
                 </button>
               </div>
               {vanDongPhucHoi.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Chưa có vận động phục hồi</p>
+                <div className="bg-gray-50 rounded-xl p-12 text-center border border-gray-200">
+                  <span className="material-symbols-outlined text-6xl text-gray-300 mb-4" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>fitness_center</span>
+                  <p className="text-gray-500 text-lg mb-2">Chưa có vận động phục hồi</p>
+                  <p className="text-gray-400 text-sm">Bấm "Thêm vận động phục hồi" để bắt đầu</p>
+                </div>
               ) : (
                 <div className="space-y-4">
                   {vanDongPhucHoi.map((vdph) => (
@@ -2243,6 +2270,7 @@ export default function BenhNhanDetailPage() {
               )}
             </div>
           )}
+        </div>
         </div>
       </div>
 
@@ -2331,7 +2359,7 @@ export default function BenhNhanDetailPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
                   Thêm
                 </button>
@@ -2452,7 +2480,7 @@ export default function BenhNhanDetailPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
                   Tạo
                 </button>
@@ -2527,7 +2555,7 @@ export default function BenhNhanDetailPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
                   Tạo
                 </button>
@@ -2613,7 +2641,7 @@ export default function BenhNhanDetailPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
                   Tạo
                 </button>
@@ -2696,7 +2724,7 @@ export default function BenhNhanDetailPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
                   {editingNguoiThan ? 'Cập nhật' : 'Thêm'}
                 </button>
@@ -2770,7 +2798,7 @@ export default function BenhNhanDetailPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
                   {editingDoDung ? 'Cập nhật' : 'Thêm'}
                 </button>
@@ -2953,7 +2981,7 @@ export default function BenhNhanDetailPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
                   {phong ? 'Cập nhật' : 'Phân phòng'}
                 </button>
@@ -2981,24 +3009,7 @@ export default function BenhNhanDetailPage() {
                 <select
                   required
                   value={dichVuForm.id_dich_vu}
-                  onChange={(e) => {
-                    setDichVuForm({ ...dichVuForm, id_dich_vu: e.target.value });
-                    // Tự động tính giá khi chọn dịch vụ
-                    const dichVuInfo = allDichVus.find(dv => dv.id === parseInt(e.target.value));
-                    if (dichVuInfo) {
-                      let gia = 0;
-                      if (dichVuForm.hinh_thuc_thanh_toan === 'thang') {
-                        gia = dichVuInfo.gia_thang || 0;
-                      } else if (dichVuForm.hinh_thuc_thanh_toan === 'quy') {
-                        gia = dichVuInfo.gia_quy || 0;
-                      } else if (dichVuForm.hinh_thuc_thanh_toan === 'nam') {
-                        gia = dichVuInfo.gia_nam || 0;
-                      }
-                      if (gia > 0) {
-                        setDichVuForm(prev => ({ ...prev, thanh_tien: gia.toString() }));
-                      }
-                    }
-                  }}
+                  onChange={(e) => setDichVuForm({ ...dichVuForm, id_dich_vu: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   disabled={!!editingDichVu && !isDoiDichVu}
                 >
@@ -3033,51 +3044,13 @@ export default function BenhNhanDetailPage() {
                   <select
                     required
                     value={dichVuForm.hinh_thuc_thanh_toan}
-                    onChange={(e) => {
-                      setDichVuForm({ ...dichVuForm, hinh_thuc_thanh_toan: e.target.value });
-                      // Tự động tính giá khi thay đổi hình thức thanh toán
-                      const dichVuInfo = allDichVus.find(dv => dv.id === parseInt(dichVuForm.id_dich_vu));
-                      if (dichVuInfo) {
-                        let gia = 0;
-                        if (e.target.value === 'thang') {
-                          gia = dichVuInfo.gia_thang || 0;
-                        } else if (e.target.value === 'quy') {
-                          gia = dichVuInfo.gia_quy || 0;
-                        } else if (e.target.value === 'nam') {
-                          gia = dichVuInfo.gia_nam || 0;
-                        }
-                        if (gia > 0) {
-                          setDichVuForm(prev => ({ ...prev, thanh_tien: gia.toString() }));
-                        }
-                      }
-                    }}
+                  onChange={(e) => setDichVuForm({ ...dichVuForm, hinh_thuc_thanh_toan: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   >
                     <option value="thang">Theo tháng</option>
                     <option value="quy">Theo quý</option>
                     <option value="nam">Theo năm</option>
                   </select>
-                  {(() => {
-                    const dichVuInfo = allDichVus.find(dv => dv.id === parseInt(dichVuForm.id_dich_vu));
-                    if (dichVuInfo) {
-                      let gia = 0;
-                      if (dichVuForm.hinh_thuc_thanh_toan === 'thang') {
-                        gia = dichVuInfo.gia_thang || 0;
-                      } else if (dichVuForm.hinh_thuc_thanh_toan === 'quy') {
-                        gia = dichVuInfo.gia_quy || 0;
-                      } else if (dichVuForm.hinh_thuc_thanh_toan === 'nam') {
-                        gia = dichVuInfo.gia_nam || 0;
-                      }
-                      if (gia > 0 && !dichVuForm.thanh_tien) {
-                        return (
-                          <p className="text-xs text-green-600 mt-1 font-medium">
-                            Giá tự động: {new Intl.NumberFormat('vi-VN').format(gia)} đ
-                          </p>
-                        );
-                      }
-                    }
-                    return null;
-                  })()}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái *</label>
@@ -3091,77 +3064,6 @@ export default function BenhNhanDetailPage() {
                     <option value="tam_dung">Tạm dừng</option>
                     <option value="ket_thuc">Kết thúc</option>
                   </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Thành tiền (đ)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={dichVuForm.thanh_tien}
-                    onChange={(e) => setDichVuForm({ ...dichVuForm, thanh_tien: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    placeholder="Tự động tính từ bảng giá"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Để trống để tự động tính từ bảng giá</p>
-                </div>
-              </div>
-              
-              {/* Checkbox thanh toán */}
-              <div className="mt-4 space-y-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Tình trạng thanh toán *</label>
-                <div className="space-y-2">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="thanhToanType"
-                      value="chua_thanh_toan"
-                      checked={thanhToanType === 'chua_thanh_toan'}
-                      onChange={(e) => {
-                        setThanhToanType(e.target.value);
-                        setSoTienThanhToan('');
-                      }}
-                      className="mr-2"
-                    />
-                    <span className="text-sm">Chưa thanh toán (Công nợ = Thành tiền)</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="thanhToanType"
-                      value="thanh_toan_truoc"
-                      checked={thanhToanType === 'thanh_toan_truoc'}
-                      onChange={(e) => setThanhToanType(e.target.value)}
-                      className="mr-2"
-                    />
-                    <span className="text-sm">Thanh toán trước</span>
-                  </label>
-                  {thanhToanType === 'thanh_toan_truoc' && (
-                    <div className="ml-6">
-                      <input
-                        type="number"
-                        min="0"
-                        value={soTienThanhToan}
-                        onChange={(e) => setSoTienThanhToan(e.target.value)}
-                        placeholder="Nhập số tiền đã thanh toán"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Công nợ = Thành tiền - Số tiền đã thanh toán</p>
-                    </div>
-                  )}
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="thanhToanType"
-                      value="thanh_toan_du"
-                      checked={thanhToanType === 'thanh_toan_du'}
-                      onChange={(e) => {
-                        setThanhToanType(e.target.value);
-                        setSoTienThanhToan('');
-                      }}
-                      className="mr-2"
-                    />
-                    <span className="text-sm">Thanh toán đủ (Công nợ = 0)</span>
-                  </label>
                 </div>
               </div>
               <div className="flex justify-end space-x-3 pt-4">
@@ -3177,7 +3079,7 @@ export default function BenhNhanDetailPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
                   {editingDichVu ? 'Cập nhật' : 'Thêm'}
                 </button>
@@ -3281,7 +3183,7 @@ export default function BenhNhanDetailPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
                   {hoSoYTe ? 'Cập nhật' : 'Tạo'}
                 </button>
@@ -3368,7 +3270,7 @@ export default function BenhNhanDetailPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
                   {editingBenhHienTai ? 'Cập nhật' : 'Thêm'}
                 </button>
@@ -3474,7 +3376,7 @@ export default function BenhNhanDetailPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
                   {editingTamLyGiaoTiep ? 'Cập nhật' : 'Thêm'}
                 </button>
@@ -3584,7 +3486,7 @@ export default function BenhNhanDetailPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
                   {editingVanDongPhucHoi ? 'Cập nhật' : 'Thêm'}
                 </button>
@@ -3634,7 +3536,7 @@ export default function BenhNhanDetailPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
                   Tạo
                 </button>
@@ -3684,7 +3586,7 @@ export default function BenhNhanDetailPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
                   Tạo
                 </button>

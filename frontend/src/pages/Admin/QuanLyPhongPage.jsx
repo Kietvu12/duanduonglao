@@ -240,219 +240,248 @@ export default function QuanLyPhongPage() {
     }
   };
 
+  // Xử lý đổi phòng cho bệnh nhân
+  const handleDoiPhong = (bn, currentPhong) => {
+    alert('Chức năng đổi phòng sẽ được triển khai. Bệnh nhân: ' + bn.ho_ten + ', Phòng hiện tại: ' + currentPhong.ten_phong);
+  };
+
+  // Xử lý xóa bệnh nhân khỏi phòng
+  const handleXoaBenhNhanKhoiPhong = async (phongBenhNhanId, phongId) => {
+    if (!confirm('Bạn có chắc muốn xóa bệnh nhân khỏi phòng này?')) return;
+    try {
+      await phongAPI.delete(phongBenhNhanId);
+      alert('Xóa bệnh nhân khỏi phòng thành công');
+      loadPhongs();
+    } catch (error) {
+      alert('Lỗi: ' + error.message);
+    }
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-raleway p-6 lg:p-8">
+      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Quản lý Phân khu & Phòng</h1>
-          <p className="text-gray-600 mt-1">Quản lý phân khu và phòng với hình ảnh</p>
+          <h1 className="text-4xl font-black leading-tight tracking-tight text-gray-800">Quản lý Phân khu & Phòng</h1>
+          <p className="text-gray-600 mt-2">Quản lý phân khu và phòng với hình ảnh</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
-        <nav className="flex space-x-8">
-          <button
-            onClick={() => setActiveTab('phan-khu')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'phan-khu'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Phân khu
-          </button>
-          <button
-            onClick={() => setActiveTab('phong')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'phong'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Phòng
-          </button>
-        </nav>
-      </div>
-
-      {/* Phân khu Tab */}
-      {activeTab === 'phan-khu' && (
-        <div className="space-y-4">
-          <div className="flex justify-end">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="border-b border-gray-200 bg-gray-50">
+          <nav className="flex -mb-px">
             <button
-              onClick={() => {
-                resetPhanKhuForm();
-                setEditingPhanKhu(null);
-                setShowPhanKhuModal(true);
-              }}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              onClick={() => setActiveTab('phan-khu')}
+              className={`px-6 py-4 text-sm font-semibold border-b-2 transition-all ${
+                activeTab === 'phan-khu'
+                  ? 'border-[#4A90E2] text-[#4A90E2] bg-[#4A90E2]/5'
+                  : 'border-transparent text-gray-600 hover:text-[#4A90E2] hover:border-gray-300 hover:bg-gray-50'
+              }`}
             >
-              + Tạo phân khu
+              Phân khu
             </button>
-          </div>
-
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            {loadingPhanKhu ? (
-              <div className="p-8 text-center text-gray-500">Đang tải...</div>
-            ) : (
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên khu</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mô tả</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số tầng</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số phòng (dự kiến)</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số phòng (thực tế)</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {phanKhus.length === 0 ? (
-                    <tr>
-                      <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
-                        Không có dữ liệu
-                      </td>
-                    </tr>
-                  ) : (
-                    phanKhus.map((pk) => (
-                      <tr key={pk.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 font-medium">{pk.ten_khu}</td>
-                        <td className="px-6 py-4">{pk.mo_ta || '-'}</td>
-                        <td className="px-6 py-4">{pk.so_tang || '-'}</td>
-                        <td className="px-6 py-4">{pk.so_phong || '-'}</td>
-                        <td className="px-6 py-4">{pk.so_phong_thuc_te || 0}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                          <button
-                            onClick={() => handleEditPhanKhu(pk)}
-                            className="text-blue-600 hover:text-blue-900"
-                          >
-                            Sửa
-                          </button>
-                          <button
-                            onClick={() => handleDeletePhanKhu(pk.id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            Xóa
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            )}
-          </div>
+            <button
+              onClick={() => setActiveTab('phong')}
+              className={`px-6 py-4 text-sm font-semibold border-b-2 transition-all ${
+                activeTab === 'phong'
+                  ? 'border-[#4A90E2] text-[#4A90E2] bg-[#4A90E2]/5'
+                  : 'border-transparent text-gray-600 hover:text-[#4A90E2] hover:border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              Phòng
+            </button>
+          </nav>
         </div>
-      )}
 
-      {/* Phòng Tab */}
-      {activeTab === 'phong' && (
-        <div className="space-y-4">
-          {/* Filters */}
-          <div className="bg-white p-4 rounded-lg shadow">
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Lọc theo Phân khu</label>
-                <select
-                  value={selectedPhanKhu || ''}
-                  onChange={(e) => {
-                    const newPhanKhu = e.target.value || '';
-                    setSelectedPhanKhu(newPhanKhu);
-                    loadPhongs(newPhanKhu, phongTrangThaiFilter, phongSearch);
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                >
-                  <option value="">Tất cả phân khu</option>
-                  {phanKhus.map((pk) => (
-                    <option key={pk.id} value={pk.id}>{pk.ten_khu}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Lọc theo Trạng thái</label>
-                <select
-                  value={phongTrangThaiFilter || ''}
-                  onChange={(e) => {
-                    const newTrangThai = e.target.value || '';
-                    setPhongTrangThaiFilter(newTrangThai);
-                    loadPhongs(selectedPhanKhu, newTrangThai, phongSearch);
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                >
-                  <option value="">Tất cả</option>
-                  <option value="trong">Trống</option>
-                  <option value="co_nguoi">Có người</option>
-                  <option value="bao_tri">Bảo trì</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tìm kiếm</label>
-                <input
-                  type="text"
-                  value={phongSearch || ''}
-                  onChange={(e) => {
-                    const newSearch = e.target.value || '';
-                    setPhongSearch(newSearch);
-                    loadPhongs(selectedPhanKhu, phongTrangThaiFilter, newSearch);
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  placeholder="Tên phòng, số phòng..."
-                />
-              </div>
+        {/* Phân khu Tab */}
+        {activeTab === 'phan-khu' && (
+          <div className="p-6 lg:p-8 space-y-6">
+            <div className="flex justify-end">
+              <button
+                onClick={() => {
+                  resetPhanKhuForm();
+                  setEditingPhanKhu(null);
+                  setShowPhanKhuModal(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
+              >
+                <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>add</span>
+                <span>Tạo phân khu</span>
+              </button>
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              {loadingPhanKhu ? (
+                <div className="p-16 text-center text-gray-500">Đang tải...</div>
+              ) : phanKhus.length === 0 ? (
+                <div className="p-16 text-center">
+                  <span className="material-symbols-outlined text-6xl text-gray-300 mb-4" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>domain</span>
+                  <p className="text-gray-500 text-lg mb-2">Chưa có phân khu nào</p>
+                  <p className="text-gray-400 text-sm">Bấm "Tạo phân khu" để bắt đầu</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Tên khu</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Mô tả</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Số tầng</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Số phòng (dự kiến)</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Số phòng (thực tế)</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {phanKhus.map((pk) => (
+                        <tr key={pk.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-5 font-semibold text-gray-900">{pk.ten_khu}</td>
+                          <td className="px-6 py-5 text-sm text-gray-900">{pk.mo_ta || '-'}</td>
+                          <td className="px-6 py-5 text-sm text-gray-900">{pk.so_tang || '-'}</td>
+                          <td className="px-6 py-5 text-sm text-gray-900">{pk.so_phong || '-'}</td>
+                          <td className="px-6 py-5 text-sm text-gray-900">{pk.so_phong_thuc_te || 0}</td>
+                          <td className="px-6 py-5 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleEditPhanKhu(pk)}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-[#4A90E2]/10 text-[#4A90E2] rounded-lg hover:bg-[#4A90E2]/20 transition-colors text-xs font-semibold"
+                              >
+                                <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>edit</span>
+                                <span>Sửa</span>
+                              </button>
+                              <button
+                                onClick={() => handleDeletePhanKhu(pk.id)}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-xs font-semibold"
+                              >
+                                <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>delete</span>
+                                <span>Xóa</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
+        )}
 
-          <div className="flex justify-end">
-            <button
-              onClick={async () => {
-                await loadPhanKhus(); // Đảm bảo có danh sách phân khu
-                resetPhongForm();
-                setEditingPhong(null);
-                setShowPhongModal(true);
-              }}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              + Tạo phòng
-            </button>
-          </div>
+        {/* Phòng Tab */}
+        {activeTab === 'phong' && (
+          <div className="p-6 lg:p-8 space-y-6">
+            {/* Filters */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Lọc theo Phân khu</label>
+                  <select
+                    value={selectedPhanKhu || ''}
+                    onChange={(e) => {
+                      const newPhanKhu = e.target.value || '';
+                      setSelectedPhanKhu(newPhanKhu);
+                      loadPhongs(newPhanKhu, phongTrangThaiFilter, phongSearch);
+                    }}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-gray-800"
+                  >
+                    <option value="">Tất cả phân khu</option>
+                    {phanKhus.map((pk) => (
+                      <option key={pk.id} value={pk.id}>{pk.ten_khu}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Lọc theo Trạng thái</label>
+                  <select
+                    value={phongTrangThaiFilter || ''}
+                    onChange={(e) => {
+                      const newTrangThai = e.target.value || '';
+                      setPhongTrangThaiFilter(newTrangThai);
+                      loadPhongs(selectedPhanKhu, newTrangThai, phongSearch);
+                    }}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-gray-800"
+                  >
+                    <option value="">Tất cả</option>
+                    <option value="trong">Trống</option>
+                    <option value="co_nguoi">Có người</option>
+                    <option value="bao_tri">Bảo trì</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Tìm kiếm</label>
+                  <div className="flex w-full items-center rounded-lg h-10 border border-gray-200 bg-gray-50 overflow-hidden">
+                    <div className="text-gray-600 flex items-center justify-center pl-3 pr-2 h-full">
+                      <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>search</span>
+                    </div>
+                    <input
+                      type="text"
+                      value={phongSearch || ''}
+                      onChange={(e) => {
+                        const newSearch = e.target.value || '';
+                        setPhongSearch(newSearch);
+                        loadPhongs(selectedPhanKhu, phongTrangThaiFilter, newSearch);
+                      }}
+                      className="flex-1 h-full bg-transparent border-0 outline-0 text-gray-800 placeholder:text-gray-600 pl-2 pr-4 text-sm font-normal focus:ring-0"
+                      placeholder="Tên phòng, số phòng..."
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
 
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            {loadingPhong ? (
-              <div className="p-8 text-center text-gray-500">Đang tải...</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phân khu</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên phòng</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số phòng</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số giường</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Diện tích</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số người</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bệnh nhân</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {phongs.length === 0 ? (
+            <div className="flex justify-end">
+              <button
+                onClick={async () => {
+                  await loadPhanKhus(); // Đảm bảo có danh sách phân khu
+                  resetPhongForm();
+                  setEditingPhong(null);
+                  setShowPhongModal(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
+              >
+                <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>add</span>
+                <span>Tạo phòng</span>
+              </button>
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              {loadingPhong ? (
+                <div className="p-16 text-center text-gray-500">Đang tải...</div>
+              ) : phongs.length === 0 ? (
+                <div className="p-16 text-center">
+                  <span className="material-symbols-outlined text-6xl text-gray-300 mb-4" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>bed</span>
+                  <p className="text-gray-500 text-lg mb-2">Chưa có phòng nào</p>
+                  <p className="text-gray-400 text-sm">Bấm "Tạo phòng" để bắt đầu</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
                       <tr>
-                        <td colSpan="9" className="px-6 py-4 text-center text-gray-500">
-                          Không có dữ liệu
-                        </td>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Phân khu</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Tên phòng</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Số phòng</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Số giường</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Diện tích</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Số người</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Trạng thái</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Bệnh nhân</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Thao tác</th>
                       </tr>
-                    ) : (
-                      phongs.map((p) => (
-                        <tr key={p.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4">{p.ten_khu}</td>
-                          <td className="px-6 py-4 font-medium">{p.ten_phong}</td>
-                          <td className="px-6 py-4">{p.so_phong || '-'}</td>
-                          <td className="px-6 py-4">{p.so_giuong || '-'}</td>
-                          <td className="px-6 py-4">{p.dien_tich ? `${p.dien_tich} m²` : '-'}</td>
-                          <td className="px-6 py-4">
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {phongs.map((p) => (
+                        <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-5 text-sm text-gray-900">{p.ten_khu}</td>
+                          <td className="px-6 py-5 font-semibold text-gray-900">{p.ten_phong}</td>
+                          <td className="px-6 py-5 text-sm text-gray-900">{p.so_phong || '-'}</td>
+                          <td className="px-6 py-5 text-sm text-gray-900">{p.so_giuong || '-'}</td>
+                          <td className="px-6 py-5 text-sm text-gray-900">{p.dien_tich ? `${p.dien_tich} m²` : '-'}</td>
+                          <td className="px-6 py-5">
                             <div className="text-sm">
-                              <span className="font-medium">
+                              <span className="font-semibold text-gray-900">
                                 {p.benh_nhans?.length || 0}
                               </span>
                               <span className="text-gray-500"> / </span>
@@ -460,12 +489,12 @@ export default function QuanLyPhongPage() {
                                 {p.so_nguoi_toi_da || 1}
                               </span>
                               {p.benh_nhans?.length >= (p.so_nguoi_toi_da || 1) && (
-                                <span className="ml-2 text-xs text-red-600 font-medium">(Đầy)</span>
+                                <span className="ml-2 text-xs text-red-600 font-semibold">(Đầy)</span>
                               )}
                             </div>
                           </td>
-                          <td className="px-6 py-4">
-                            <span className={`px-2 py-1 text-xs rounded-full ${
+                          <td className="px-6 py-5">
+                            <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
                               p.trang_thai === 'trong' ? 'bg-green-100 text-green-800' :
                               p.trang_thai === 'co_nguoi' ? 'bg-yellow-100 text-yellow-800' :
                               'bg-red-100 text-red-800'
@@ -473,14 +502,14 @@ export default function QuanLyPhongPage() {
                               {p.trang_thai?.replace('_', ' ')}
                             </span>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-5">
                             {p.benh_nhans && p.benh_nhans.length > 0 ? (
                               <div className="space-y-2">
                                 {p.benh_nhans.map((bn) => (
                                   <div key={bn.id} className="text-sm flex items-center gap-2 flex-wrap">
                                     <a
                                       href={`/admin/benh-nhan/${bn.id_benh_nhan}`}
-                                      className="text-blue-600 hover:text-blue-900 hover:underline font-medium"
+                                      className="text-[#4A90E2] hover:text-[#4A90E2]/80 hover:underline font-medium"
                                       target="_blank"
                                       rel="noopener noreferrer"
                                     >
@@ -490,29 +519,31 @@ export default function QuanLyPhongPage() {
                                       <span className="text-gray-500 text-xs">(G{bn.giuong})</span>
                                     )}
                                     {bn.loai_dich_vu && (
-                                      <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-800">
+                                      <span className="text-xs px-2 py-0.5 rounded-full bg-[#4A90E2]/20 text-[#4A90E2] font-medium">
                                         {bn.loai_dich_vu.replace('_', ' ')}
                                       </span>
                                     )}
                                     <div className="flex gap-1 ml-auto">
                                       <button
                                         onClick={() => handleDoiPhong(bn, p)}
-                                        className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200"
+                                        className="flex items-center gap-1 text-xs px-2 py-1 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 transition-colors"
                                         title="Đổi phòng"
                                       >
-                                        Đổi
+                                        <span className="material-symbols-outlined text-xs" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>swap_horiz</span>
+                                        <span>Đổi</span>
                                       </button>
                                       <button
                                         onClick={() => handleXoaBenhNhanKhoiPhong(bn.id, p.id)}
-                                        className="text-xs px-2 py-1 bg-red-100 text-red-800 rounded hover:bg-red-200"
+                                        className="flex items-center gap-1 text-xs px-2 py-1 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
                                         title="Xóa khỏi phòng"
                                       >
-                                        Xóa
+                                        <span className="material-symbols-outlined text-xs" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>delete</span>
+                                        <span>Xóa</span>
                                       </button>
                                     </div>
                                   </div>
                                 ))}
-                                <div className="text-xs text-gray-500 mt-1">
+                                <div className="text-xs text-gray-500 mt-1 font-medium">
                                   Tổng: {p.benh_nhans.length} bệnh nhân
                                 </div>
                               </div>
@@ -520,41 +551,58 @@ export default function QuanLyPhongPage() {
                               <span className="text-gray-400 text-sm">Trống</span>
                             )}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                            <button
-                              onClick={() => handleEditPhong(p)}
-                              className="text-blue-600 hover:text-blue-900"
-                            >
-                              Sửa
-                            </button>
-                            <button
-                              onClick={() => handleDeletePhong(p.id)}
-                              className="text-red-600 hover:text-red-900"
-                            >
-                              Xóa
-                            </button>
+                          <td className="px-6 py-5 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleEditPhong(p)}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-[#4A90E2]/10 text-[#4A90E2] rounded-lg hover:bg-[#4A90E2]/20 transition-colors text-xs font-semibold"
+                              >
+                                <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>edit</span>
+                                <span>Sửa</span>
+                              </button>
+                              <button
+                                onClick={() => handleDeletePhong(p.id)}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-xs font-semibold"
+                              >
+                                <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>delete</span>
+                                <span>Xóa</span>
+                              </button>
+                            </div>
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Modal Phân khu */}
       {showPhanKhuModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-4">
-              {editingPhanKhu ? 'Sửa phân khu' : 'Tạo phân khu mới'}
-            </h2>
-            <form onSubmit={handleSubmitPhanKhu} className="space-y-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 font-raleway p-4">
+          <div className="bg-white rounded-xl p-6 lg:p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+              <h2 className="text-2xl font-black text-gray-800">
+                {editingPhanKhu ? 'Sửa phân khu' : 'Tạo phân khu mới'}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowPhanKhuModal(false);
+                  setEditingPhanKhu(null);
+                  resetPhanKhuForm();
+                }}
+                className="flex items-center justify-center rounded-lg h-8 w-8 text-gray-600 hover:bg-gray-100 transition-colors"
+                title="Đóng"
+              >
+                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>close</span>
+              </button>
+            </div>
+            <form onSubmit={handleSubmitPhanKhu} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Tên khu *
                 </label>
                 <input
@@ -562,45 +610,45 @@ export default function QuanLyPhongPage() {
                   required
                   value={phanKhuForm.ten_khu}
                   onChange={(e) => setPhanKhuForm({ ...phanKhuForm, ten_khu: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-gray-800"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Mô tả
                 </label>
                 <textarea
                   value={phanKhuForm.mo_ta}
                   onChange={(e) => setPhanKhuForm({ ...phanKhuForm, mo_ta: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-gray-800"
                   rows="3"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Số tầng
                   </label>
                   <input
                     type="number"
                     value={phanKhuForm.so_tang}
                     onChange={(e) => setPhanKhuForm({ ...phanKhuForm, so_tang: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-gray-800"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Số phòng (dự kiến)
                   </label>
                   <input
                     type="number"
                     value={phanKhuForm.so_phong}
                     onChange={(e) => setPhanKhuForm({ ...phanKhuForm, so_phong: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-gray-800"
                   />
                 </div>
               </div>
-              <div className="flex justify-end space-x-3 pt-4">
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                 <button
                   type="button"
                   onClick={() => {
@@ -608,15 +656,16 @@ export default function QuanLyPhongPage() {
                     setEditingPhanKhu(null);
                     resetPhanKhuForm();
                   }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-semibold"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
-                  {editingPhanKhu ? 'Cập nhật' : 'Tạo'}
+                  <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>save</span>
+                  <span>{editingPhanKhu ? 'Cập nhật' : 'Tạo'}</span>
                 </button>
               </div>
             </form>
@@ -626,21 +675,34 @@ export default function QuanLyPhongPage() {
 
       {/* Modal Phòng */}
       {showPhongModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-4">
-              {editingPhong ? 'Sửa phòng' : 'Tạo phòng mới'}
-            </h2>
-            <form onSubmit={handleSubmitPhong} className="space-y-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 font-raleway p-4">
+          <div className="bg-white rounded-xl p-6 lg:p-8 w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+              <h2 className="text-2xl font-black text-gray-800">
+                {editingPhong ? 'Sửa phòng' : 'Tạo phòng mới'}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowPhongModal(false);
+                  setEditingPhong(null);
+                  resetPhongForm();
+                }}
+                className="flex items-center justify-center rounded-lg h-8 w-8 text-gray-600 hover:bg-gray-100 transition-colors"
+                title="Đóng"
+              >
+                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>close</span>
+              </button>
+            </div>
+            <form onSubmit={handleSubmitPhong} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Phân khu *
                 </label>
                 <select
                   required
                   value={phongForm.id_phan_khu}
                   onChange={(e) => setPhongForm({ ...phongForm, id_phan_khu: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-gray-800"
                 >
                   <option value="">Chọn phân khu</option>
                   {phanKhus.map((pk) => (
@@ -650,7 +712,7 @@ export default function QuanLyPhongPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Tên phòng *
                   </label>
                   <input
@@ -658,33 +720,33 @@ export default function QuanLyPhongPage() {
                     required
                     value={phongForm.ten_phong}
                     onChange={(e) => setPhongForm({ ...phongForm, ten_phong: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-gray-800"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Số phòng
                   </label>
                   <input
                     type="text"
                     value={phongForm.so_phong}
                     onChange={(e) => setPhongForm({ ...phongForm, so_phong: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-gray-800"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Số giường
                   </label>
                   <input
                     type="number"
                     value={phongForm.so_giuong}
                     onChange={(e) => setPhongForm({ ...phongForm, so_giuong: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-gray-800"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Số người tối đa *
                   </label>
                   <input
@@ -693,13 +755,13 @@ export default function QuanLyPhongPage() {
                     required
                     value={phongForm.so_nguoi_toi_da}
                     onChange={(e) => setPhongForm({ ...phongForm, so_nguoi_toi_da: parseInt(e.target.value) || 1 })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-gray-800"
                     placeholder="Số lượng tối đa bệnh nhân có thể ở trong phòng"
                   />
                   <p className="text-xs text-gray-500 mt-1">Số lượng tối đa bệnh nhân có thể ở trong phòng này</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Diện tích (m²)
                   </label>
                   <input
@@ -707,17 +769,17 @@ export default function QuanLyPhongPage() {
                     step="0.01"
                     value={phongForm.dien_tich}
                     onChange={(e) => setPhongForm({ ...phongForm, dien_tich: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-gray-800"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Trạng thái
                   </label>
                   <select
                     value={phongForm.trang_thai}
                     onChange={(e) => setPhongForm({ ...phongForm, trang_thai: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-gray-800"
                   >
                     <option value="trong">Trống</option>
                     <option value="co_nguoi">Có người</option>
@@ -726,25 +788,25 @@ export default function QuanLyPhongPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Mô tả
                 </label>
                 <textarea
                   value={phongForm.mo_ta}
                   onChange={(e) => setPhongForm({ ...phongForm, mo_ta: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-gray-800"
                   rows="3"
                 />
               </div>
 
               {/* Upload 3 ảnh */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Hình ảnh phòng (3 ảnh)</h3>
+              <div className="space-y-4 border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-bold text-gray-800">Hình ảnh phòng (3 ảnh)</h3>
                 {[1, 2, 3].map((num) => {
                   const imageField = `anh_${num}`;
                   return (
-                    <div key={num}>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <div key={num} className="space-y-2">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
                         Ảnh {num}
                       </label>
                       <div className="space-y-2">
@@ -753,17 +815,20 @@ export default function QuanLyPhongPage() {
                           accept="image/*"
                           onChange={(e) => handleUploadImage(e, imageField)}
                           disabled={uploadingImages[imageField]}
-                          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
+                          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#4A90E2]/10 file:text-[#4A90E2] hover:file:bg-[#4A90E2]/20 disabled:opacity-50"
                         />
                         {uploadingImages[imageField] && (
-                          <p className="text-sm text-gray-500">Đang tải ảnh lên...</p>
+                          <p className="text-sm text-gray-500 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-base animate-spin" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>sync</span>
+                            Đang tải ảnh lên...
+                          </p>
                         )}
                         {phongForm[imageField] && (
                           <div className="mt-2">
                             <img
                               src={phongForm[imageField]}
                               alt={`Ảnh ${num}`}
-                              className="max-w-xs h-auto rounded-lg border border-gray-300"
+                              className="max-w-xs h-auto rounded-lg border border-gray-200 shadow-sm"
                               onError={(e) => {
                                 e.target.style.display = 'none';
                               }}
@@ -771,9 +836,10 @@ export default function QuanLyPhongPage() {
                             <button
                               type="button"
                               onClick={() => setPhongForm({ ...phongForm, [imageField]: '' })}
-                              className="mt-2 text-sm text-red-600 hover:text-red-800"
+                              className="mt-2 flex items-center gap-1 text-sm text-red-600 hover:text-red-800 font-medium"
                             >
-                              Xóa ảnh {num}
+                              <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>delete</span>
+                              <span>Xóa ảnh {num}</span>
                             </button>
                           </div>
                         )}
@@ -781,7 +847,7 @@ export default function QuanLyPhongPage() {
                           type="text"
                           value={phongForm[imageField]}
                           onChange={(e) => setPhongForm({ ...phongForm, [imageField]: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                          className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-0 focus:ring-2 focus:ring-[#4A90E2]/50 text-gray-800"
                           placeholder="Hoặc nhập URL ảnh"
                         />
                       </div>
@@ -790,7 +856,7 @@ export default function QuanLyPhongPage() {
                 })}
               </div>
 
-              <div className="flex justify-end space-x-3 pt-4">
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                 <button
                   type="button"
                   onClick={() => {
@@ -798,15 +864,16 @@ export default function QuanLyPhongPage() {
                     setEditingPhong(null);
                     resetPhongForm();
                   }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-semibold"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#4A90E2]/90 transition-colors text-sm font-semibold"
                 >
-                  {editingPhong ? 'Cập nhật' : 'Tạo'}
+                  <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>save</span>
+                  <span>{editingPhong ? 'Cập nhật' : 'Tạo'}</span>
                 </button>
               </div>
             </form>

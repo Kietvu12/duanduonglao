@@ -9,6 +9,7 @@ import { errorHandler, notFound } from './middleware/errorHandler.js';
 import authRoutes from './routes/authRoutes.js';
 import benhNhanRoutes from './routes/benhNhanRoutes.js';
 import lichKhamRoutes from './routes/lichKhamRoutes.js';
+import lichThamBenhRoutes from './routes/lichThamBenhRoutes.js';
 import nhanVienRoutes from './routes/nhanVienRoutes.js';
 import dichVuRoutes from './routes/dichVuRoutes.js';
 import suKienRoutes from './routes/suKienRoutes.js';
@@ -59,6 +60,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/benh-nhan', benhNhanRoutes);
 app.use('/api/lich-kham', lichKhamRoutes);
+app.use('/api/lich-tham-benh', lichThamBenhRoutes);
 app.use('/api/nhan-vien', nhanVienRoutes);
 app.use('/api/dich-vu', dichVuRoutes);
 app.use('/api/su-kien', suKienRoutes);

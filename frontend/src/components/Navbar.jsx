@@ -30,8 +30,8 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-sm shadow-sm">
-      <div className=" mx-auto px-4 sm:px-6 lg:px-8">
+    <nav className="fixed top-0 left-0 right-0 z-50 w-full bg-white/95 backdrop-blur-sm shadow-sm">
+      <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
         <div className="flex items-center justify-between h-20">
           {/* Logo Section */}
           <div className="flex items-center">
@@ -40,6 +40,20 @@ const Navbar = () => {
                 src={logoImage}
                 alt="XUÂN HOA Logo"
                 className="h-12 md:h-14 lg:h-16 w-auto object-contain"
+                loading="eager"
+                decoding="async"
+                style={{ 
+                  width: 'auto',
+                  height: '100%',
+                  maxHeight: '64px',
+                  display: 'block'
+                }}
+                onLoad={(e) => {
+                  e.target.style.opacity = '1';
+                }}
+                onError={(e) => {
+                  console.error('Failed to load logo image');
+                }}
               />
             </Link>
           </div>
